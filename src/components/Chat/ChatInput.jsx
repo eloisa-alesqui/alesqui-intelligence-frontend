@@ -1,12 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Send, Loader2, Zap } from 'lucide-react';
+import { Send, Loader2, Brain } from 'lucide-react';
 
 const ChatInput = ({
     currentMessage,
     setCurrentMessage,
     onSendMessage,
     configuredApis,
-    isLoading
+    isLoading,
+    includeReasoning,
+    onReasoningChange
 }) => {
     const inputRef = useRef(null);
 
@@ -76,6 +78,21 @@ const ChatInput = ({
             </form>
 
             <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+                <label 
+                    htmlFor="includeReasoning" 
+                    className="flex items-center space-x-2 cursor-pointer text-gray-600 hover:text-gray-900 transition-colors"
+                    title="Include a step-by-step breakdown of how the answer was generated"
+                >
+                    <input
+                        id="includeReasoning"
+                        type="checkbox"
+                        checked={includeReasoning}
+                        onChange={(e) => onReasoningChange(e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:ring-blue-500"
+                    />
+                    <Brain className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium">Include step-by-step reasoning</span>
+                </label>
                 <span>
                     {configuredApis.length > 0
                         ? `${configuredApis.length} API${configuredApis.length !== 1 ? 's' : ''} available`

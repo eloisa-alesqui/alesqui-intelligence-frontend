@@ -14,6 +14,8 @@ const ChatTab = ({ addNotification }) => {
         chatMessages,
         currentMessage,
         isLoading,
+        includeReasoning,
+        setIncludeReasoning,
         setCurrentMessage,
         handleSendMessage,
         clearChat,
@@ -75,6 +77,8 @@ const ChatTab = ({ addNotification }) => {
                     onSendMessage={handleSendMessage}
                     configuredApis={configuredApis}
                     isLoading={isLoading}
+                    includeReasoning={includeReasoning}
+                    onReasoningChange={setIncludeReasoning}
                 />
             </div>
 

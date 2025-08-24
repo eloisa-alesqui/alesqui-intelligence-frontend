@@ -14,7 +14,7 @@ const Header = ({ activeTab, setActiveTab }) => {
                 <div className="flex justify-between items-center h-16">
                     <div className="flex items-center">
                         <Bot className="h-8 w-8 text-blue-600 mr-3" />
-                        <h1 className="text-2xl font-bold text-gray-900">PostmanGPT</h1>
+                        <h1 className="text-2xl font-bold text-gray-900">Alesqui Intelligence</h1>
                     </div>
 
                     <nav className="flex space-x-8">

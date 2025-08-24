@@ -28,6 +28,7 @@ export const useChat = (addNotification: (message: string, type: string) => void
     const [chatMessages, setChatMessages] = useState < ChatMessage[] > ([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [includeReasoning, setIncludeReasoning] = useState(true);
 
     /**
      * Send message with proper settings
@@ -54,7 +55,7 @@ export const useChat = (addNotification: (message: string, type: string) => void
                 maxIterations: 5,
                 timeoutSeconds: 90,
                 language: 'es', // Spanish since the response was in Spanish
-                includeReasoning: true
+                includeReasoning: includeReasoning
             };
 
             // Send message with settings
@@ -232,6 +233,8 @@ export const useChat = (addNotification: (message: string, type: string) => void
         chatMessages,
         currentMessage,
         isLoading,
+        includeReasoning,
+        setIncludeReasoning,
         setCurrentMessage,
         handleSendMessage,
         handleSendReActMessage,
