@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import ChatMessageChart from './ChatMessageChart';
 
 const ChatMessages = ({ chatMessages, configuredApis, isLoading }) => {
   const messagesEndRef = useRef(null);
@@ -518,6 +519,7 @@ const ChatMessages = ({ chatMessages, configuredApis, isLoading }) => {
                                   >
                                       {message.content || ''}
                                   </ReactMarkdown>
+                                  {message.chart && <ChatMessageChart chartData={message.chart} />}
                               </div>
                           ) : (
                               <p className="text-sm whitespace-pre-wrap break-words">

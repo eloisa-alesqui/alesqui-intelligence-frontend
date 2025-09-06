@@ -15,6 +15,7 @@ interface ChatMessage {
     iterations?: number;
     confidenceScore?: number;
     processingTimeMs?: number;
+    chart?: any;
 }
 
 interface ConfiguredApi {
@@ -73,6 +74,7 @@ export const useChat = (addNotification: (message: string, type: string) => void
                 iterations: response.iterations,
                 confidenceScore: response.confidenceScore,
                 processingTimeMs: response.processingTimeMs,
+                chart: response.chart,
                 isError: response.error
             };
 

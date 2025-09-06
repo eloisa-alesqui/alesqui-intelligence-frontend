@@ -19,6 +19,7 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
         resetForm,
         handleSwaggerUpload,
         handlePostmanUpload,
+        handleSkipPostman,
         handleUnifyAPI
     } = useApiForm(addNotification, (newApi) => {
         onApiConfigured(newApi);
@@ -72,7 +73,7 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
                     <div className="bg-white rounded-lg shadow p-6">
                         <h3 className="text-xl font-semibold text-gray-900 mb-6">
                             {currentStep === 1 && 'Step 1: API Information & Swagger'}
-                            {currentStep === 2 && 'Step 2: Postman Collection'}
+                            {currentStep === 2 && 'Step 2: Postman Collection (Optional)'}
                             {currentStep === 3 && 'Step 3: Unify API'}
                         </h3>
 
@@ -92,6 +93,7 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
                                 apiForm={apiForm}
                                 updateForm={updateForm}
                                 onUpload={handlePostmanUpload}
+                                onSkip={handleSkipPostman}
                                 isLoading={isLoading}
                             />
                         )}

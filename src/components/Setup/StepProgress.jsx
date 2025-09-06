@@ -4,7 +4,10 @@ import { CheckCircle } from 'lucide-react';
 const StepProgress = ({ currentStep, apiForm }) => {
     const getStepStatus = (step) => {
         if (step === 1) return apiForm.swaggerUploaded ? 'completed' : currentStep === 1 ? 'current' : 'pending';
-        if (step === 2) return apiForm.postmanUploaded ? 'completed' : currentStep === 2 ? 'current' : 'pending';
+        if (step === 2) {
+            if (apiForm.postmanUploaded || currentStep > 2) return 'completed';
+            return currentStep === 2 ? 'current' : 'pending';
+        }
         if (step === 3) return apiForm.unified ? 'completed' : currentStep === 3 ? 'current' : 'pending';
     };
 

@@ -27,6 +27,7 @@ interface ChatResponse {
   reasoning: string[];
   processingTimeMs: number;
   confidenceScore: number;
+  chart?: any;
   error?: string;
 }
 
@@ -46,6 +47,7 @@ interface SendMessageResponse {
   reasoning: string[];
   processingTimeMs: number;
   confidenceScore: number;
+  chart?: any;
   error: boolean;
 }
 
@@ -119,6 +121,7 @@ class ChatService {
         reasoning: data.reasoning || [],
         processingTimeMs: data.processingTimeMs,
         confidenceScore: data.confidenceScore,
+        chart: data.chart,
         error: !data.success
       };
     } catch (error) {
@@ -135,6 +138,7 @@ class ChatService {
         reasoning: [],
         processingTimeMs: 0,
         confidenceScore: 0,
+        chart: null,
         error: true
       };
     }

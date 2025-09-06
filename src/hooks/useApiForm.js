@@ -88,6 +88,10 @@ export const useApiForm = (addNotification, onApiConfigured) => {
         }
     };
 
+    const handleSkipPostman = () => {
+        setCurrentStep(3);
+    };
+
     const handleUnifyAPI = async () => {
         setIsLoading(true);
         try {
@@ -123,6 +127,7 @@ export const useApiForm = (addNotification, onApiConfigured) => {
         resetForm,
         handleSwaggerUpload,
         handlePostmanUpload,
+        handleSkipPostman,
         handleUnifyAPI
     };
 };
