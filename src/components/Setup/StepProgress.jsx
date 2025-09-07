@@ -1,14 +1,21 @@
 import React from 'react';
 import { CheckCircle } from 'lucide-react';
 
-const StepProgress = ({ currentStep, apiForm }) => {
+const StepProgress = ({ currentStep, apiForm, steps = 3 }) => {
     const getStepStatus = (step) => {
-        if (step === 1) return apiForm.swaggerUploaded ? 'completed' : currentStep === 1 ? 'current' : 'pending';
-        if (step === 2) {
-            if (apiForm.postmanUploaded || currentStep > 2) return 'completed';
-            return currentStep === 2 ? 'current' : 'pending';
+        if (step === 1) {
+            return apiForm.swaggerUploaded ? 'completed' : (currentStep === 1 ? 'current' : 'pending');
         }
-        if (step === 3) return apiForm.unified ? 'completed' : currentStep === 3 ? 'current' : 'pending';
+        if (step === 2) {
+            return (apiForm.postmanUploaded || currentStep > 2) ? 'completed' : (currentStep === 2 ? 'current' : 'pending');
+        }
+        if (currentStep > step) {
+            return 'completed';
+        }
+        if (currentStep === step) {
+            return 'current';
+        }
+        return 'pending';
     };
 
     const getStepClasses = (status) => {
@@ -27,23 +34,21 @@ const StepProgress = ({ currentStep, apiForm }) => {
         return status === 'completed' ? 'bg-green-500' : 'bg-gray-200';
     };
 
+    const stepArray = Array.from({ length: steps }, (_, i) => i + 1);
+
     return (
         <div className="flex items-center mb-8">
-            {[1, 2, 3].map((step) => {
+            {stepArray.map((step) => {
                 const status = getStepStatus(step);
                 return (
-                    <div key={step} className="flex items-center">
+                    <React.Fragment key={step}>
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${getStepClasses(status)}`}>
-                            {status === 'completed' ? (
-                                <CheckCircle className="w-4 h-4" />
-                            ) : (
-                                step
-                            )}
+                            {status === 'completed' ? <CheckCircle className="w-4 h-4" /> : step}
                         </div>
-                        {step < 3 && (
+                        {step < steps && (
                             <div className={`w-16 h-1 mx-2 ${getConnectorClasses(step)}`} />
                         )}
-                    </div>
+                    </React.Fragment>
                 );
             })}
         </div>

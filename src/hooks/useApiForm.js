@@ -15,8 +15,21 @@ const initialApiForm = {
     unified: false
 };
 
+const initialApiConfiguration = {
+    baseUrl: '',
+    timeoutSeconds: 30,
+    headers: {}, 
+    authRequired: false,
+    authToken: '',
+    authType: 'Bearer',
+    maxRetries: 3,
+    enableLogging: true,
+    rateLimit: 0,
+};
+
 export const useApiForm = (addNotification, onApiConfigured) => {
     const [apiForm, setApiForm] = useState(initialApiForm);
+    const [apiConfig, setApiConfig] = useState(initialApiConfiguration);
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -25,6 +38,10 @@ export const useApiForm = (addNotification, onApiConfigured) => {
 
     const updateForm = (updates) => {
         setApiForm(prev => ({ ...prev, ...updates }));
+    };
+
+    const updateApiConfig = (updates) => {
+        setApiConfig(prev => ({ ...prev, ...updates }));
     };
 
     const resetForm = () => {
@@ -96,22 +113,38 @@ export const useApiForm = (addNotification, onApiConfigured) => {
         setIsLoading(true);
         try {
             await apiUnificationService.unifyAndSaveApiDocuments(apiForm.name);
-
             addNotification(`API ${apiForm.name} unified successfully`);
+            
+            setCurrentStep(4); 
+            
+        } catch (error) {
+            addNotification('Error unifying API: ' + error.message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    const handleSaveConfiguration = async () => {
+        setIsLoading(true);
+        try {
+            await apiUnificationService.updateConfiguration(apiForm.name, apiConfig);
+
+            addNotification(`Configuration for ${apiForm.name} saved successfully`);
+            
+            // Now we finish the flow by calling the callback and resetting the form.
             const newApi = {
-                id: Date.now(),
+                id: apiForm.name, // Use a more stable ID if available from the backend response
                 name: apiForm.name,
                 team: apiForm.team || 'Default',
                 description: apiForm.description || '',
                 dateConfigured: new Date().toLocaleDateString()
             };
-
             onApiConfigured(newApi);
             resetForm();
-            addNotification('API configuration completed! You can now configure another API or start chatting.');
+            addNotification('API setup complete! You can now start chatting.');
+
         } catch (error) {
-            addNotification('Error unifying API: ' + error.message, 'error');
+            addNotification('Error saving configuration: ' + error.message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -128,6 +161,9 @@ export const useApiForm = (addNotification, onApiConfigured) => {
         handleSwaggerUpload,
         handlePostmanUpload,
         handleSkipPostman,
-        handleUnifyAPI
+        apiConfig,
+        updateApiConfig,
+        handleUnifyAPI,
+        handleSaveConfiguration
     };
 };

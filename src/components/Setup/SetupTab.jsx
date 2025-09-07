@@ -4,6 +4,7 @@ import StepProgress from './StepProgress';
 import SwaggerStep from './SwaggerStep';
 import PostmanStep from './PostmanStep';
 import UnifyStep from './UnifyStep';
+import ConfigurationStep from './ConfigurationStep';
 import ConfiguredApisSidebar from '../ApiList/ConfiguredApisSidebar';
 import { useApiForm } from '../../hooks/useApiForm';
 
@@ -20,13 +21,14 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
         handleSwaggerUpload,
         handlePostmanUpload,
         handleSkipPostman,
-        handleUnifyAPI
+        handleUnifyAPI,
+        apiConfig,
+        updateApiConfig,
+        handleSaveConfiguration
     } = useApiForm(addNotification, (newApi) => {
         onApiConfigured(newApi);
-        // Recargar las APIs después de configurar una nueva
         loadApis();
     });
-
     useEffect(() => {
         loadApis();
     }, []);
@@ -75,9 +77,10 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
                             {currentStep === 1 && 'Step 1: API Information & Swagger'}
                             {currentStep === 2 && 'Step 2: Postman Collection (Optional)'}
                             {currentStep === 3 && 'Step 3: Unify API'}
+                            {currentStep === 4 && 'Step 4: API Execution Configuration'}
                         </h3>
 
-                        <StepProgress currentStep={currentStep} apiForm={apiForm} />
+                        <StepProgress currentStep={currentStep} apiForm={apiForm} steps={4} />
 
                         {currentStep === 1 && (
                             <SwaggerStep
@@ -103,6 +106,16 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
                                 apiForm={apiForm}
                                 onUnify={handleUnifyAPI}
                                 isLoading={isLoading}
+                            />
+                        )}
+
+                        {currentStep === 4 && (
+                            <ConfigurationStep
+                                config={apiConfig}
+                                setConfig={updateApiConfig}
+                                onSave={handleSaveConfiguration}
+                                isLoading={isLoading}
+                                apiName={apiForm.name}
                             />
                         )}
 

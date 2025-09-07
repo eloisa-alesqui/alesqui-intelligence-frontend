@@ -274,6 +274,37 @@ export interface UnifiedApiDocument {
             throw error;
         }
     }
+
+    /**
+     * Updates the runtime configuration for a specific unified API.
+     * @param {string} apiName - The name of the API to configure.
+     * @param {object} apiConfig - The configuration object.
+     * @returns {Promise<object>} The updated unified API document.
+     */
+    async updateConfiguration(apiName, apiConfig) {
+        try {
+            // Note: The backend endpoint was discussed as /api/unified/{apiName}/configuration
+            // I'm using /api/unification for consistency with your other services for now.
+            // Please adjust the URL to match your final backend controller mapping.
+            const response = await fetch(`${this.baseUrl}/${apiName}/configuration`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(apiConfig),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('Error updating API configuration:', error);
+            throw error;
+        }
+    }
   
     /**
      * Retrieves all unified API documents
