@@ -1,284 +1,235 @@
-// Types for the chat service
-interface ChatSettings {
-  forceReAct: boolean;
-  maxIterations: number;
-  timeoutSeconds: number;
-  language: string;
-  includeReasoning: boolean;
+import apiClient from '../api/axiosConfig';
+
+// ================================================================================================
+// TYPE DEFINITIONS
+// ================================================================================================
+
+/**
+ * Defines the configurable settings for a chat interaction.
+ */
+export interface ChatSettings {
+    forceReAct: boolean;
+    maxIterations: number;
+    timeoutSeconds: number;
+    language: string;
+    includeReasoning: boolean;
 }
 
-interface ChatRequest {
-  query: string;
-  conversationId: string;
-  forceReAct: boolean;
-  maxIterations: number;
-  timeoutSeconds: number;
-  language: string;
-  includeReasoning: boolean;
+/**
+ * Defines the structure of the request payload sent to the backend chat API.
+ */
+export interface ChatRequest {
+    query: string;
+    conversationId: string;
+    // Includes all settings from ChatSettings
+    [key: string]: any; 
 }
 
-interface ChatResponse {
-  content: string;
-  timestamp: number;
-  conversationId: string;
-  success: boolean;
-  processingType: string;
-  iterations: number;
-  reasoning: string[];
-  processingTimeMs: number;
-  confidenceScore: number;
-  chart?: any;
-  error?: string;
+/**
+ * Defines the structure of the response payload received from the backend chat API.
+ */
+export interface ChatResponse {
+    content: string;
+    timestamp: number; // Expecting a Unix timestamp (seconds)
+    conversationId: string;
+    success: boolean;
+    processingType: string;
+    iterations: number;
+    reasoning: string;
+    processingTimeMs: number;
+    confidenceScore: number;
+    metadata?: Record<string, any>;
+    chart?: any; // Can be any chart data structure
+    error?: string;
 }
 
-interface SendMessageContext {
-  configuredApis?: string[];
-  conversationHistory?: any[];
-  userId?: string;
+/**
+ * Defines the structure of the final, processed response returned by the service.
+ * This is a more frontend-friendly version of ChatResponse.
+ */
+export interface SendMessageResponse {
+    content: string;
+    timestamp: Date; // Converted to a Date object
+    conversationId: string;
+    success: boolean;
+    processingType: string;
+    reasoning: string;
+    processingTimeMs: number;
+    metadata?: Record<string, any>;
+    chart?: any;
+    error: boolean;
 }
 
-interface SendMessageResponse {
-  content: string;
-  timestamp: Date;
-  conversationId: string;
-  success: boolean;
-  processingType: string;
-  iterations: number;
-  reasoning: string[];
-  processingTimeMs: number;
-  confidenceScore: number;
-  chart?: any;
-  error: boolean;
-}
+// ================================================================================================
+// CHAT SERVICE CLASS
+// ================================================================================================
 
+/**
+ * Service for managing chat conversations with the backend AI.
+ *
+ * This class handles the state of the current conversation (via conversationId)
+ * and orchestrates the sending and receiving of messages to the chat API.
+ */
 class ChatService {
-  private baseUrl: string;
-  private conversationId: string | null;
+    private baseUrl = '/api/chat';
+    private conversationId: string | null = null;
 
-  constructor() {
-    this.baseUrl = '/api/chat';
-    this.conversationId = null;
-  }
-
-  /**
-   * Generate a new conversation ID
-   */
-  private generateConversationId(): string {
-    return `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Send message to chat service
-   */
-  async sendMessage(
-    message: string,
-    settings: ChatSettings,
-    context: SendMessageContext = {}
-  ): Promise<SendMessageResponse> {
-    try {
-      // Generate conversation ID if not exists
-      if (!this.conversationId) {
-        this.conversationId = this.generateConversationId();
-      }
-
-      const requestBody: ChatRequest = {
-        query: message,
-        conversationId: this.conversationId,
-        forceReAct: settings.forceReAct,
-        maxIterations: settings.maxIterations,
-        timeoutSeconds: settings.timeoutSeconds,
-        language: settings.language,
-        includeReasoning: settings.includeReasoning
-      };
-
-      const response = await fetch(`${this.baseUrl}/message`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-      }
-
-      const data: ChatResponse = await response.json();
-
-      // Update conversation ID from response
-      if (data.conversationId) {
-        this.conversationId = data.conversationId;
-      }
-
-      return {
-        content: data.content,
-        timestamp: new Date(data.timestamp * 1000),
-        conversationId: data.conversationId,
-        success: data.success,
-        processingType: data.processingType,
-        iterations: data.iterations,
-        reasoning: data.reasoning || [],
-        processingTimeMs: data.processingTimeMs,
-        confidenceScore: data.confidenceScore,
-        chart: data.chart,
-        error: !data.success
-      };
-    } catch (error) {
-      console.error('Error sending message:', error);
-
-      // Return error response in the expected format
-      return {
-        content: `Error: ${error instanceof Error ? error.message : 'Unknown error occurred'}`,
-        timestamp: new Date(),
-        conversationId: this.conversationId || 'error',
-        success: false,
-        processingType: 'ERROR',
-        iterations: 0,
-        reasoning: [],
-        processingTimeMs: 0,
-        confidenceScore: 0,
-        chart: null,
-        error: true
-      };
-    }
-  }
-
-  /**
-   * Send message with default settings
-   */
-  async sendSimpleMessage(message: string): Promise<SendMessageResponse> {
-    const defaultSettings: ChatSettings = {
-      forceReAct: false,
-      maxIterations: 5,
-      timeoutSeconds: 30,
-      language: 'en',
-      includeReasoning: false
-    };
-
-    return this.sendMessage(message, defaultSettings);
-  }
-
-  /**
-   * Send message with ReAct enabled
-   */
-  async sendReActMessage(
-    message: string,
-    maxIterations: number = 10
-  ): Promise<SendMessageResponse> {
-    const reactSettings: ChatSettings = {
-      forceReAct: true,
-      maxIterations,
-      timeoutSeconds: 60,
-      language: 'en',
-      includeReasoning: true
-    };
-
-    return this.sendMessage(message, reactSettings);
-  }
-
-  /**
-   * Clear conversation (reset context)
-   */
-  clearConversation(): void {
-    this.conversationId = null;
-  }
-
-  /**
-   * Get current conversation ID
-   */
-  getConversationId(): string | null {
-    return this.conversationId;
-  }
-
-  /**
-   * Set conversation ID manually
-   */
-  setConversationId(conversationId: string): void {
-    this.conversationId = conversationId;
-  }
-
-  /**
-   * Check if there's an active conversation
-   */
-  hasActiveConversation(): boolean {
-    return this.conversationId !== null;
-  }
-
-  /**
-   * Get fallback suggestions when API fails
-   */
-  getFallbackSuggestions(apiNames: string[] = []): string[] {
-    if (apiNames.length === 0) {
-      return [
-        "What APIs do I have configured?",
-        "Show me how to get started with API integration",
-        "What are best practices for API authentication?",
-        "Help me create a new API request",
-        "Explain different HTTP methods"
-      ];
+    /**
+     * Generates a new unique identifier for a conversation session.
+     * @returns A unique string for the conversation ID.
+     */
+    private generateConversationId(): string {
+        return `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
-    return [
-      `What endpoints are available in ${apiNames[0]}?`,
-      `Show me examples for ${apiNames[0]} API calls`,
-      `How do I authenticate with ${apiNames[0]}?`,
-      "List all configured APIs and their purposes",
-      "Show me common API patterns"
-    ];
-  }
+    /**
+     * Sends a message to the backend chat service with the specified settings.
+     * This is the core method for communicating with the AI.
+     * @param message The user's query.
+     * @param settings The configuration for the chat request.
+     * @returns A promise that resolves to a frontend-friendly chat response.
+     */
+    async sendMessage(message: string, settings: ChatSettings): Promise<SendMessageResponse> {
+        // Ensure a conversation ID exists for this session.
+        if (!this.conversationId) {
+            this.conversationId = this.generateConversationId();
+        }
 
-  /**
-   * Validate chat settings
-   */
-  validateSettings(settings: ChatSettings): boolean {
-    return (
-      typeof settings.forceReAct === 'boolean' &&
-      settings.maxIterations >= 1 && settings.maxIterations <= 20 &&
-      settings.timeoutSeconds >= 0 &&
-      settings.language.length > 0 && settings.language.length <= 5 &&
-      typeof settings.includeReasoning === 'boolean'
-    );
-  }
+        const requestBody: ChatRequest = {
+            query: message,
+            conversationId: this.conversationId,
+            ...settings,
+        };
 
-  /**
-   * Create default settings
-   */
-  static createDefaultSettings(): ChatSettings {
-    return {
-      forceReAct: false,
-      maxIterations: 5,
-      timeoutSeconds: 30,
-      language: 'en',
-      includeReasoning: false
-    };
-  }
+        try {
+            // Use the centralized apiClient for the authenticated request.
+            const response = await apiClient.post<ChatResponse>(`${this.baseUrl}/message`, requestBody);
+            const data = response.data;
 
-  /**
-   * Create ReAct settings
-   */
-  static createReActSettings(maxIterations: number = 10): ChatSettings {
-    return {
-      forceReAct: true,
-      maxIterations,
-      timeoutSeconds: 60,
-      language: 'en',
-      includeReasoning: true
-    };
-  }
+            // Update the conversation ID from the response to maintain state.
+            if (data.conversationId) {
+                this.conversationId = data.conversationId;
+            }
+
+            // Map the backend response to a more frontend-friendly format.
+            return {
+                content: data.content,
+                timestamp: new Date(data.timestamp * 1000), // Convert Unix timestamp
+                conversationId: data.conversationId,
+                success: data.success,
+                processingType: data.processingType,
+                reasoning: data.reasoning || '',
+                processingTimeMs: data.processingTimeMs,
+                metadata: data.metadata,
+                chart: data.chart,
+                error: !data.success
+            };
+        } catch (error: any) {
+            console.error('Error sending message:', error);
+
+            // Construct a standardized error response.
+            const errorMessage = error.response?.data?.message || error.message || 'An unknown error occurred';
+            return {
+                content: `Error: ${errorMessage}`,
+                timestamp: new Date(),
+                conversationId: this.conversationId || 'error-no-id',
+                success: false,
+                processingType: 'ERROR',
+                reasoning: '',
+                processingTimeMs: 0,
+                metadata: undefined,
+                chart: undefined,
+                error: true
+            };
+        }
+    }
+
+    /**
+     * Resets the current conversation, forcing a new conversationId on the next message.
+     */
+    clearConversation(): void {
+        this.conversationId = null;
+    }
+
+    /**
+     * Retrieves the ID of the currently active conversation.
+     * @returns The current conversation ID or null if none is active.
+     */
+    getConversationId(): string | null {
+        return this.conversationId;
+    }
+
+    /**
+     * Manually sets the conversation ID, for example, to continue a previous session.
+     * @param conversationId The ID of the conversation to resume.
+     */
+    setConversationId(conversationId: string): void {
+        this.conversationId = conversationId;
+    }
+
+    /**
+     * Check if there's an active conversation
+     */
+    hasActiveConversation(): boolean {
+      return this.conversationId !== null;
+    }
 }
 
-// Export singleton instance
+/**
+ * Singleton instance of the ChatService.
+ */
 export const chatService = new ChatService();
 
-// Export types for use in other files
-export type {
-  ChatSettings,
-  ChatRequest,
-  ChatResponse,
-  SendMessageContext,
-  SendMessageResponse
-};
+// ================================================================================================
+// UTILITY FUNCTIONS
+// ================================================================================================
 
-// Export class for testing or multiple instances
-export { ChatService };
+/**
+ * A collection of pure utility functions related to the chat service.
+ */
+export const ChatUtils = {
+    /**
+     * Creates a default set of chat settings for standard queries.
+     * @returns A ChatSettings object with default values.
+     */
+    createDefaultSettings(): ChatSettings {
+        return {
+            forceReAct: false,
+            maxIterations: 5,
+            timeoutSeconds: 30,
+            language: 'en',
+            includeReasoning: false,
+        };
+    },
+
+    /**
+     * Creates a set of chat settings specifically for ReAct-based queries.
+     * @param maxIterations The maximum number of agent iterations.
+     * @returns A ChatSettings object configured for the ReAct engine.
+     */
+    createReActSettings(maxIterations = 10): ChatSettings {
+        return {
+            forceReAct: true,
+            maxIterations,
+            timeoutSeconds: 60,
+            language: 'en',
+            includeReasoning: true,
+        };
+    },
+
+    /**
+     * Validates a ChatSettings object to ensure its values are within acceptable ranges.
+     * @param settings The settings object to validate.
+     * @returns True if the settings are valid, otherwise false.
+     */
+    validateSettings(settings: ChatSettings): boolean {
+        return (
+            typeof settings.forceReAct === 'boolean' &&
+            settings.maxIterations >= 1 && settings.maxIterations <= 20 &&
+            settings.timeoutSeconds >= 0 &&
+            settings.language.length > 0 && settings.language.length <= 5 &&
+            typeof settings.includeReasoning === 'boolean'
+        );
+    }
+
+};

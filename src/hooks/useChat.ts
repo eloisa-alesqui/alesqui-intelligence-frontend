@@ -1,236 +1,148 @@
-import { useState } from 'react';
-import { chatService, ChatSettings } from '../services/chatService';
+import { useState, useCallback } from 'react';
+import { chatService, ChatSettings, SendMessageResponse } from '../services/chatService';
+import { useNotifications, NotificationType } from '../context/NotificationContext';
+import { ChartDataType } from '../components/Chat/ChatMessageChart';
 
-interface ChatMessage {
+// Define the shape of a single chat message for the UI state.
+// This interface now mirrors the backend's ChatResponse DTO more closely.
+export interface ChatMessage {
     id: number;
     type: 'user' | 'bot';
     content: string;
     timestamp: Date;
-    sources?: any[];
-    suggestions?: string[];
-    conversationId?: string;
     isError?: boolean;
-    reasoning?: string[];
-    processingType?: string;
-    iterations?: number;
-    confidenceScore?: number;
+    chart?: ChartDataType | null; 
+    reasoning?: string;
+    conversationId?: string;
     processingTimeMs?: number;
-    chart?: any;
+    processingType?: string;
+    metadata?: Record<string, any>; 
+
+    // Include the full raw response from the service for backward compatibility or deep debugging
+    responseDetails?: SendMessageResponse;
 }
 
-interface ConfiguredApi {
-    name: string;
-    description: string;
-    baseUrl: string;
-    endpoints?: any[];
-}
+/**
+ * A comprehensive custom hook to manage the state and logic of a chat conversation.
+ *
+ * It encapsulates message history, loading states, user input, and the core logic for
+ * sending messages to the backend. It integrates with NotificationContext to display
+ * global notifications and with ChatService for API communication.
+ */
+export const useChat = () => {
+    const { addNotification } = useNotifications();
 
-export const useChat = (addNotification: (message: string, type: string) => void) => {
-    const [chatMessages, setChatMessages] = useState < ChatMessage[] > ([]);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [includeReasoning, setIncludeReasoning] = useState(true);
 
     /**
-     * Send message with proper settings
+     * A private helper function to handle the common logic of sending a message.
      */
-    const handleSendMessage = async (configuredApis: ConfiguredApi[] = []) => {
-        if (!currentMessage.trim()) return;
+    const performSendMessage = useCallback(async (message: string, settings: ChatSettings, successNotification: { message: string, type: NotificationType }) => {
+        if (!message.trim()) return;
 
         const userMessage: ChatMessage = {
             id: Date.now(),
             type: 'user',
-            content: currentMessage,
+            content: message,
             timestamp: new Date()
         };
 
         setChatMessages(prev => [...prev, userMessage]);
         setIsLoading(true);
-        const messageToSend = currentMessage;
         setCurrentMessage('');
 
         try {
-            // Create chat settings - you can customize these based on your needs
-            const settings: ChatSettings = {
-                forceReAct: false,
-                maxIterations: 5,
-                timeoutSeconds: 90,
-                language: 'es', // Spanish since the response was in Spanish
-                includeReasoning: includeReasoning
-            };
+            const response = await chatService.sendMessage(message, settings);
 
-            // Send message with settings
-            const response = await chatService.sendMessage(messageToSend, settings);
-
-            // Create bot message from response
             const botMessage: ChatMessage = {
                 id: Date.now() + 1,
                 type: 'bot',
-                content: response.content, // ✅ Using 'content' instead of 'message'
-                timestamp: response.timestamp, // ✅ Already a Date object
-                conversationId: response.conversationId,
+                content: response.content,
+                timestamp: response.timestamp,
+                isError: !response.success, // Use the success flag from the DTO
+                chart: response.chart || null,
                 reasoning: response.reasoning,
-                processingType: response.processingType,
-                iterations: response.iterations,
-                confidenceScore: response.confidenceScore,
+                conversationId: response.conversationId,
                 processingTimeMs: response.processingTimeMs,
-                chart: response.chart,
-                isError: response.error
+                processingType: response.processingType,
+                metadata: response.metadata,
+                responseDetails: response, // Keep the full object for reference
             };
-
             setChatMessages(prev => [...prev, botMessage]);
 
-            // Show success notification if needed
-            if (response.processingTimeMs > 0) {
-                addNotification(
-                    `Message processed in ${response.processingTimeMs}ms (${response.processingType})`,
-                    'success'
-                );
+            if (response.success) {
+                addNotification(successNotification.message, successNotification.type);
+            } else {
+                addNotification(response.content, 'error');
             }
 
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            addNotification('Error sending message: ' + errorMessage, 'error');
+            addNotification(`Error: ${errorMessage}`, 'error');
 
             const errorBotMessage: ChatMessage = {
                 id: Date.now() + 1,
                 type: 'bot',
-                content: 'Sorry, I encountered an error processing your request. Please try again.',
+                content: 'Sorry, I encountered an unhandled error. Please check the console and try again.',
                 timestamp: new Date(),
                 isError: true
             };
-
             setChatMessages(prev => [...prev, errorBotMessage]);
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [addNotification]);
+
 
     /**
-     * Send message with ReAct enabled for complex queries
+     * Sends the current message using customizable settings.
      */
-    const handleSendReActMessage = async (configuredApis: ConfiguredApi[] = []) => {
-        if (!currentMessage.trim()) return;
-
-        const userMessage: ChatMessage = {
-            id: Date.now(),
-            type: 'user',
-            content: currentMessage,
-            timestamp: new Date()
+    const handleSendMessage = useCallback(() => {
+        const settings = {
+            forceReAct: includeReasoning,
+            maxIterations: 10,
+            timeoutSeconds: 90,
+            language: 'es',
+            includeReasoning: includeReasoning
         };
-
-        setChatMessages(prev => [...prev, userMessage]);
-        setIsLoading(true);
-        const messageToSend = currentMessage;
-        setCurrentMessage('');
-
-        try {
-            // Use ReAct for complex reasoning
-            const response = await chatService.sendReActMessage(messageToSend, 10);
-
-            const botMessage: ChatMessage = {
-                id: Date.now() + 1,
-                type: 'bot',
-                content: response.content,
-                timestamp: response.timestamp,
-                conversationId: response.conversationId,
-                reasoning: response.reasoning,
-                processingType: response.processingType,
-                iterations: response.iterations,
-                confidenceScore: response.confidenceScore,
-                processingTimeMs: response.processingTimeMs,
-                isError: response.error
-            };
-
-            setChatMessages(prev => [...prev, botMessage]);
-
-            addNotification(
-                `ReAct processing completed in ${response.iterations} iterations (${response.processingTimeMs}ms)`,
-                'info'
-            );
-
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            addNotification('Error sending ReAct message: ' + errorMessage, 'error');
-
-            const errorBotMessage: ChatMessage = {
-                id: Date.now() + 1,
-                type: 'bot',
-                content: 'Sorry, I encountered an error with ReAct processing. Please try again.',
-                timestamp: new Date(),
-                isError: true
-            };
-
-            setChatMessages(prev => [...prev, errorBotMessage]);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        const notification = {
+            message: `Message processed successfully.`,
+            type: 'success' as NotificationType
+        };
+        performSendMessage(currentMessage, settings, notification);
+    }, [currentMessage, includeReasoning, performSendMessage]);
 
     /**
-     * Send simple message with default settings
+     * Clears the current chat history and resets the conversation state.
      */
-    const handleSendSimpleMessage = async () => {
-        if (!currentMessage.trim()) return;
-
-        const userMessage: ChatMessage = {
-            id: Date.now(),
-            type: 'user',
-            content: currentMessage,
-            timestamp: new Date()
-        };
-
-        setChatMessages(prev => [...prev, userMessage]);
-        setIsLoading(true);
-        const messageToSend = currentMessage;
-        setCurrentMessage('');
-
-        try {
-            const response = await chatService.sendSimpleMessage(messageToSend);
-
-            const botMessage: ChatMessage = {
-                id: Date.now() + 1,
-                type: 'bot',
-                content: response.content,
-                timestamp: response.timestamp,
-                conversationId: response.conversationId,
-                reasoning: response.reasoning,
-                processingType: response.processingType,
-                iterations: response.iterations,
-                confidenceScore: response.confidenceScore,
-                processingTimeMs: response.processingTimeMs,
-                isError: response.error
-            };
-
-            setChatMessages(prev => [...prev, botMessage]);
-
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            addNotification('Error sending simple message: ' + errorMessage, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const clearChat = () => {
+    const clearChat = useCallback(() => {
         setChatMessages([]);
         chatService.clearConversation();
-        addNotification('Chat cleared', 'info');
-    };
+        addNotification('Chat has been cleared', 'info');
+    }, [addNotification]);
 
-    const handleExampleQuery = (query: string) => {
+    /**
+     * Sets the content of the chat input box to an example query.
+     */
+    const handleExampleQuery = useCallback((query: string) => {
         setCurrentMessage(query);
-    };
+    }, []);
 
-    // Get conversation info
-    const getConversationInfo = () => {
+    /**
+     * Gets information about the current conversation session.
+     */
+    const getConversationInfo = useCallback(() => {
         return {
             conversationId: chatService.getConversationId(),
             hasActiveConversation: chatService.hasActiveConversation(),
             messageCount: chatMessages.length
         };
-    };
+    }, [chatMessages.length]);
 
+    // Return all the state and handlers that the UI components will need.
     return {
         chatMessages,
         currentMessage,
@@ -239,8 +151,6 @@ export const useChat = (addNotification: (message: string, type: string) => void
         setIncludeReasoning,
         setCurrentMessage,
         handleSendMessage,
-        handleSendReActMessage,
-        handleSendSimpleMessage,
         clearChat,
         handleExampleQuery,
         getConversationInfo

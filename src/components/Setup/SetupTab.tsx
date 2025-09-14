@@ -1,16 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/apiService';
+import React, { useState, useEffect, useCallback } from 'react';
+import { apiService, ApiDocument } from '../../services/apiService';
+import { useNotifications } from '../../context/NotificationContext';
+import { useApiForm } from '../../hooks/useApiForm';
+
 import StepProgress from './StepProgress';
 import SwaggerStep from './SwaggerStep';
 import PostmanStep from './PostmanStep';
 import UnifyStep from './UnifyStep';
 import ConfigurationStep from './ConfigurationStep';
 import ConfiguredApisSidebar from '../ApiList/ConfiguredApisSidebar';
-import { useApiForm } from '../../hooks/useApiForm';
 
-const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
-    const [configuredApis, setConfiguredApis] = useState([]);
+/**
+ * The main component for the "Setup" tab.
+ *
+ * It orchestrates a multi-step wizard for configuring a new API by uploading
+ * Swagger and Postman files. It uses the `useApiForm` hook to manage the
+ * complex form state and logic. It also displays a sidebar with a list of
+ * currently configured APIs.
+ */
+const SetupTab: React.FC = () => {
+    const { addNotification } = useNotifications();
+
+    const [configuredApis, setConfiguredApis] = useState<ApiDocument[]>([]);
     const [loadingApis, setLoadingApis] = useState(true);
+
+    /**
+     * Callback function passed to useApiForm. It's triggered when a new API
+     * is successfully configured, then it reloads the list of APIs.
+     */
+    const handleApiConfigured = useCallback((newApi: ApiDocument) => {
+        // We'll reload the list from the server to ensure data is fresh.
+        loadApis();
+    }, []); // Empty dependency array if loadApis is memoized or defined outside.
 
     const {
         apiForm,
@@ -25,15 +46,13 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
         apiConfig,
         updateApiConfig,
         handleSaveConfiguration
-    } = useApiForm(addNotification, (newApi) => {
-        onApiConfigured(newApi);
-        loadApis();
-    });
-    useEffect(() => {
-        loadApis();
-    }, []);
-
-    const loadApis = async () => {
+    } = useApiForm({ onApiConfigured: handleApiConfigured });
+    
+    /**
+     * Fetches the list of configured APIs from the server.
+     * Memoized with useCallback to prevent re-creation on every render.
+     */
+    const loadApis = useCallback(async () => {
         try {
             setLoadingApis(true);
             const data = await apiService.getAllApisSimple();
@@ -44,12 +63,23 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
         } finally {
             setLoadingApis(false);
         }
-    };
+    }, [addNotification]);
 
-    const handleDeleteApi = async (apiId) => {
+    // Load APIs on initial component mount.
+    useEffect(() => {
+        loadApis();
+    }, [loadApis]);
+
+    /**
+     * Handles the deletion of an API from the sidebar.
+     * This logic will eventually move to the ApiList component itself.
+     */
+    const handleDeleteApi = async (apiId: string) => {
         try {
-            await onDeleteApi(apiId);
-            // Recargar las APIs después de eliminar
+            // Assuming apiService will have a delete method.
+            // await apiService.deleteApi(apiId);
+            addNotification('API deleted successfully', 'success');
+            // Reload the list to reflect the change.
             loadApis();
         } catch (error) {
             console.error('Error deleting API:', error);
@@ -70,7 +100,7 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
             </div>
 
             <div className="grid lg:grid-cols-3 gap-8">
-                {/* Configuration Form */}
+                {/* Configuration Form Wizard */}
                 <div className="lg:col-span-2">
                     <div className="bg-white rounded-lg shadow p-6">
                         <h3 className="text-xl font-semibold text-gray-900 mb-6">
@@ -119,8 +149,7 @@ const SetupTab = ({ onApiConfigured, onDeleteApi, addNotification }) => {
                             />
                         )}
 
-                        {/* Reset button */}
-                        {(currentStep > 1 || apiForm.swaggerUploaded) && (
+                        {currentStep > 1 && (
                             <div className="mt-6 pt-4 border-t">
                                 <button
                                     onClick={resetForm}

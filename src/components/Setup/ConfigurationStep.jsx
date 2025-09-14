@@ -1,114 +1,219 @@
 import React from 'react';
-import { Save } from 'lucide-react';
+import { Save, Lock, Timer, RefreshCw, Zap, Settings } from 'lucide-react';
+
+// REUSABLE COMPONENT for standard text fields
+const InputField = ({ name, label, value, type = 'text', placeholder, helpText, onChange }) => (
+    <div>
+        <label htmlFor={name} className="block text-sm font-medium text-gray-700">{label}</label>
+        <input
+            id={name}
+            type={type}
+            name={name}
+            value={value || ''}
+            onChange={onChange}
+            placeholder={placeholder}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+        />
+        {helpText && <p className="mt-2 text-xs text-gray-500">{helpText}</p>}
+    </div>
+);
+
+// REUSABLE COMPONENT for slider fields
+const SliderInputField = ({ label, name, value, min, max, step = 1, unit, helpText, onChange }) => (
+    <div>
+        <label htmlFor={name} className="flex justify-between text-sm font-medium text-gray-700">
+            <span>{label}</span>
+            <span className="font-semibold text-indigo-600">{value}{unit}</span>
+        </label>
+        <input
+            id={name}
+            type="range"
+            name={name}
+            min={min}
+            max={max}
+            step={step}
+            value={value || min}
+            onChange={onChange}
+            className="mt-2 w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+        />
+        {helpText && <p className="mt-2 text-xs text-gray-500">{helpText}</p>}
+    </div>
+);
+
+// REUSABLE COMPONENT for grouping sections
+const Section = ({ title, icon: Icon, children }) => (
+    <div className="border border-gray-200/80 bg-white rounded-lg shadow-sm">
+        <div className="px-6 py-4 border-b border-gray-200/80">
+            <div className="flex items-center space-x-3">
+                <Icon className="h-6 w-6 text-indigo-600" />
+                <h4 className="text-lg font-semibold text-gray-800">{title}</h4>
+            </div>
+        </div>
+        <div className="p-6 space-y-6">
+            {children}
+        </div>
+    </div>
+);
+
 
 const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) => {
+
+    if (!config || !config.auth) {
+        return null; 
+    }
     
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        // For numeric fields, convert the value to a number
-        const finalValue = type === 'checkbox' ? checked : (type === 'number' ? parseInt(value, 10) : value);
-        
-        setConfig({ [name]: finalValue });
+        const finalValue = type === 'checkbox' ? checked : (type === 'number' || type === 'range' ? parseInt(value, 10) : value);
+        setConfig(name, finalValue);
     };
 
     return (
-        <div className="space-y-6">
-             <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
-                <h4 className="text-sm font-medium text-blue-800">Final Step: Configure API Execution</h4>
+        <div className="space-y-8">
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="text-lg font-medium text-blue-800">Final Step: Configure API Execution</h4>
                 <p className="mt-1 text-sm text-blue-700">
                     You are configuring the runtime behavior for the <span className="font-semibold">{apiName}</span> API. These settings determine how Alesqui Intelligence will interact with it.
                 </p>
             </div>
 
-            {/* Base URL */}
-            <div>
-                <label className="block text-sm font-medium text-gray-700">Base URL (Optional)</label>
-                <input
-                    type="text"
+            <Section title="General Configuration" icon={Settings}>
+                <InputField
                     name="baseUrl"
+                    label="Base URL (Optional)"
                     value={config.baseUrl}
                     onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="e.g., https://api.example.com/v1"
+                    helpText="Overrides the URL from the Swagger/Postman files if specified."
                 />
-                <p className="mt-1 text-xs text-gray-500">Overrides the URL from the Swagger/Postman files if specified.</p>
-            </div>
+            </Section>
 
-            {/* Technical Configuration */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Timeout (seconds)</label>
-                    <input type="number" name="timeoutSeconds" value={config.timeoutSeconds} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Max Retries</label>
-                    <input type="number" name="maxRetries" value={config.maxRetries} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-                </div>
-            </div>
-
-            {/* Auth Section */}
-            <div className="border-t pt-6">
-                <h4 className="font-medium text-gray-800 mb-3">Authentication</h4>
-                <div className="flex items-center space-x-3">
-                    <input
-                        id="authRequired"
-                        type="checkbox"
-                        name="authRequired"
-                        checked={config.authRequired}
+            <Section title="Network Configuration" icon={Timer}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                    <SliderInputField
+                        label="Timeout"
+                        name="timeoutSeconds"
+                        value={config.timeoutSeconds}
                         onChange={handleChange}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        min={5}
+                        max={180}
+                        unit="s"
+                        helpText="Maximum time to wait for a response. Recommended: 30s."
                     />
-                    <label htmlFor="authRequired" className="text-sm font-medium text-gray-700">Authentication Required</label>
+                    <SliderInputField
+                        label="Max Retries"
+                        name="maxRetries"
+                        value={config.maxRetries}
+                        onChange={handleChange}
+                        min={0}
+                        max={10}
+                        unit=""
+                        helpText="How many times to retry a failed request."
+                    />
+                </div>
+            </Section>
+            
+            <Section title="Authentication" icon={Lock}>
+                <div className="relative">
+                    <label htmlFor="auth.authType" className="block text-sm font-medium text-gray-700">Authentication Type</label>
+                    <select 
+                        id="auth.authType"
+                        name="auth.authType" 
+                        value={config.auth.authType} 
+                        onChange={handleChange} 
+                        className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
+                    >
+                        <option value="none">No Authentication</option>
+                        <option value="api_key">API Key</option>
+                        <option value="bearer">Bearer Token</option>
+                        <option value="basic">Basic Auth</option>
+                        <option value="oauth2_client_credentials">OAuth 2.0 (Client Credentials)</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 mt-6">
+                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
                 </div>
 
-                {config.authRequired && (
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 pl-1">
-                        <div>
-                            <label className="block text-sm font-medium">Auth Type</label>
-                            <select name="authType" value={config.authType} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                                <option>Bearer</option>
-                                <option>Basic</option>
-                                <option>ApiKey</option>
-                                <option>Custom</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium">Auth Token or Key</label>
-                            <input
-                                type="password"
-                                name="authToken"
-                                value={config.authToken}
-                                onChange={handleChange}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                                placeholder="Enter your secret token"
-                            />
-                        </div>
+                {config.auth.authType !== 'none' && (
+                    <div className="mt-6 p-5 bg-slate-50 rounded-md space-y-4 border border-slate-200">
+                        {config.auth.authType === 'api_key' && (
+                            <>
+                                <InputField name="auth.apiKeyName" label="Header/Query Name" value={config.auth.apiKeyName} onChange={handleChange} />
+                                <InputField name="auth.apiKey" label="API Key Value" value={config.auth.apiKey} onChange={handleChange} type="password" placeholder="Enter your secret key" />
+                                <div className="relative">
+                                    <label htmlFor="auth.addApiKeyTo" className="block text-sm font-medium">Add Key To</label>
+                                    <select 
+                                        id="auth.addApiKeyTo"
+                                        name="auth.addApiKeyTo" 
+                                        value={config.auth.addApiKeyTo} 
+                                        onChange={handleChange} 
+                                        className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
+                                    >
+                                        <option value="header">Header</option>
+                                        <option value="query">Query Parameter</option>
+                                    </select>
+                                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 mt-6">
+                                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {config.auth.authType === 'bearer' && (
+                            <InputField name="auth.bearerToken" label="Bearer Token" value={config.auth.bearerToken} onChange={handleChange} type="password" placeholder="Enter your bearer token" />
+                        )}
+
+                        {config.auth.authType === 'basic' && (
+                            <>
+                                <InputField name="auth.basicAuthUsername" label="Username" value={config.auth.basicAuthUsername} onChange={handleChange} placeholder="Enter username" />
+                                <InputField name="auth.basicAuthPassword" label="Password" value={config.auth.basicAuthPassword} onChange={handleChange} type="password" placeholder="Enter password" />
+                            </>
+                        )}
+                        
+                        {config.auth.authType === 'oauth2_client_credentials' && (
+                            <>
+                                <InputField name="auth.oauth2ClientCredentials.clientId" label="Client ID" value={config.auth.oauth2ClientCredentials.clientId} onChange={handleChange} />
+                                <InputField name="auth.oauth2ClientCredentials.clientSecret" label="Client Secret" value={config.auth.oauth2ClientCredentials.clientSecret} onChange={handleChange} type="password" />
+                                <InputField name="auth.oauth2ClientCredentials.tokenUrl" label="Token URL" value={config.auth.oauth2ClientCredentials.tokenUrl} onChange={handleChange} placeholder="https://auth.example.com/oauth/token" />
+                                <InputField name="auth.oauth2ClientCredentials.scopes" label="Scopes (space-separated)" value={config.auth.oauth2ClientCredentials.scopes} onChange={handleChange} helpText="e.g., read:data write:data" />
+                            </>
+                        )}
                     </div>
                 )}
-            </div>
+            </Section>
 
-            {/* Logging and Rate Limit */}
-             <div className="border-t pt-6 space-y-4">
-                 <div className="flex items-center space-x-3">
-                    <input id="enableLogging" type="checkbox" name="enableLogging" checked={config.enableLogging} onChange={handleChange} className="h-4 w-4 rounded" />
-                    <label htmlFor="enableLogging" className="text-sm font-medium text-gray-700">Enable Request/Response Logging</label>
+            <Section title="Advanced Settings" icon={Zap}>
+                <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                        <input id="enableLogging" type="checkbox" name="enableLogging" checked={config.enableLogging} onChange={handleChange} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+                    </div>
+                    <div className="ml-3 text-sm">
+                        <label htmlFor="enableLogging" className="font-medium text-gray-700">Enable Logging</label>
+                        <p className="text-xs text-gray-500">Logs API requests and responses. Useful for debugging.</p>
+                    </div>
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">Rate Limit (requests per second)</label>
-                    <input type="number" name="rateLimit" value={config.rateLimit} onChange={handleChange} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
-                    <p className="mt-1 text-xs text-gray-500">Set to 0 for no limit.</p>
-                </div>
+                 <SliderInputField
+                    label="Rate Limit"
+                    name="rateLimit"
+                    value={config.rateLimit}
+                    onChange={handleChange}
+                    min={0}
+                    max={100}
+                    unit=" req/s"
+                    helpText="Requests per second. Use 0 for no limit."
+                />
+            </Section>
+
+            <div className="pt-5">
+                <button
+                    onClick={onSave}
+                    disabled={isLoading}
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Save className="w-5 h-5 mr-2" />
+                    {isLoading ? 'Saving...' : 'Save Configuration & Finish'}
+                </button>
             </div>
-
-
-            <button
-                onClick={onSave}
-                disabled={isLoading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-            >
-                <Save className="w-4 h-4 mr-2" />
-                {isLoading ? 'Saving...' : 'Save Configuration & Finish'}
-            </button>
         </div>
     );
 };

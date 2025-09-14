@@ -1,4 +1,14 @@
-// Unified API Document interface
+import apiClient from '../api/axiosConfig';
+
+// ================================================================================================
+// TYPE DEFINITIONS
+// ================================================================================================
+
+/**
+ * Represents the main unified API document structure, which is the result
+ * of merging Swagger/OpenAPI and Postman collections. This is the central
+ * data model for a configured API in the application.
+ */
 export interface UnifiedApiDocument {
     _id?: string;
     id?: string;
@@ -22,24 +32,30 @@ export interface UnifiedApiDocument {
     lastModifiedBy?: string;
     active?: boolean;
     [key: string]: any; // Allows any additional property
-  }
-  
-  // API Server interface
-  export interface ApiServer {
+}
+
+/**
+ * Describes a server providing access to the API.
+ */
+export interface ApiServer {
     url: string;
     description?: string;
     variables?: Record<string, ServerVariable>;
-  }
-  
-  // Server Variable interface
-  export interface ServerVariable {
+}
+
+/**
+ * Represents a variable for server URL template substitution.
+ */
+export interface ServerVariable {
     enum?: string[];
     default: string;
     description?: string;
-  }
-  
-  // Unified Endpoint interface
-  export interface UnifiedEndpoint {
+}
+
+/**
+ * Represents a single endpoint within the unified document.
+ */  
+export interface UnifiedEndpoint {
     path: string;
     method: string;
     operationId?: string;
@@ -52,10 +68,12 @@ export interface UnifiedApiDocument {
     security?: SecurityRequirement[];
     deprecated?: boolean;
     externalDocs?: ExternalDocumentation;
-  }
-  
-  // Unified Parameter interface
-  export interface UnifiedParameter {
+}
+
+/**
+ * Describes a single parameter for an endpoint.
+ */
+export interface UnifiedParameter {
     name: string;
     in: 'query' | 'header' | 'path' | 'cookie';
     description?: string;
@@ -68,33 +86,41 @@ export interface UnifiedApiDocument {
     schema?: UnifiedSchema;
     example?: any;
     examples?: Record<string, Example>;
-  }
-  
-  // Unified Request Body interface
-  export interface UnifiedRequestBody {
+}
+
+/**
+ * Describes the request body for an endpoint.
+ */
+export interface UnifiedRequestBody {
     description?: string;
     content: Record<string, MediaType>;
     required?: boolean;
-  }
-  
-  // Media Type interface
-  export interface MediaType {
+}
+
+/**
+ * Defines the content for a specific media type in a request or response.
+ */
+export interface MediaType {
     schema?: UnifiedSchema;
     example?: any;
     examples?: Record<string, Example>;
     encoding?: Record<string, Encoding>;
-  }
-  
-  // Unified Response interface
-  export interface UnifiedResponse {
+}
+
+/**
+ * Defines the structure for the response after a unification request.
+ */
+export interface UnifiedResponse {
     description: string;
     headers?: Record<string, UnifiedHeader>;
     content?: Record<string, MediaType>;
     links?: Record<string, Link>;
-  }
-  
-  // Unified Header interface
-  export interface UnifiedHeader {
+}
+
+/**
+ * Describes a single header for a response.
+ */
+export interface UnifiedHeader {
     description?: string;
     required?: boolean;
     deprecated?: boolean;
@@ -105,10 +131,12 @@ export interface UnifiedApiDocument {
     schema?: UnifiedSchema;
     example?: any;
     examples?: Record<string, Example>;
-  }
-  
-  // Unified Schema interface
-  export interface UnifiedSchema {
+}
+
+/**
+ * Represents a data schema, following the OpenAPI/JSON Schema specification.
+ */
+export interface UnifiedSchema {
     type?: string;
     format?: string;
     title?: string;
@@ -143,10 +171,12 @@ export interface UnifiedApiDocument {
     externalDocs?: ExternalDocumentation;
     example?: any;
     deprecated?: boolean;
-  }
-  
-  // Unified Authentication interface
-  export interface UnifiedAuthentication {
+}
+
+/**
+ * Describes the authentication mechanism for an API.
+ */
+export interface UnifiedAuthentication {
     type: 'apiKey' | 'http' | 'oauth2' | 'openIdConnect';
     description?: string;
     name?: string; // For apiKey
@@ -155,293 +185,233 @@ export interface UnifiedApiDocument {
     bearerFormat?: string; // For http bearer
     flows?: OAuthFlows; // For oauth2
     openIdConnectUrl?: string; // For openIdConnect
-  }
-  
-  // OAuth Flows interface
-  export interface OAuthFlows {
+}
+
+/**
+ * Container for the various OAuth2 flows.
+ */
+export interface OAuthFlows {
     implicit?: OAuthFlow;
     password?: OAuthFlow;
     clientCredentials?: OAuthFlow;
     authorizationCode?: OAuthFlow;
-  }
-  
-  // OAuth Flow interface
-  export interface OAuthFlow {
+}
+
+/**
+ * Configuration details for a single OAuth2 flow.
+ */
+export interface OAuthFlow {
     authorizationUrl?: string;
     tokenUrl?: string;
     refreshUrl?: string;
     scopes: Record<string, string>;
-  }
-  
-  // Security Requirement interface
-  export interface SecurityRequirement {
+}
+
+/**
+ * Security Requirement interface
+ */
+export interface SecurityRequirement {
     [name: string]: string[];
-  }
-  
-  // Example interface
-  export interface Example {
+}
+
+/**
+ * Example interface
+ */
+export interface Example {
     summary?: string;
     description?: string;
     value?: any;
     externalValue?: string;
-  }
-  
-  // Encoding interface
-  export interface Encoding {
+}
+
+/**
+ * Encoding interface
+ */
+export interface Encoding {
     contentType?: string;
     headers?: Record<string, UnifiedHeader>;
     style?: string;
     explode?: boolean;
     allowReserved?: boolean;
-  }
-  
-  // Link interface
-  export interface Link {
+}
+
+/**
+ * Link interface
+ */
+export interface Link {
     operationRef?: string;
     operationId?: string;
     parameters?: Record<string, any>;
     requestBody?: any;
     description?: string;
     server?: ApiServer;
-  }
-  
-  // Discriminator interface
-  export interface Discriminator {
+}
+
+/**
+ * Discriminator interface
+ */
+export interface Discriminator {
     propertyName: string;
     mapping?: Record<string, string>;
-  }
-  
-  // XML interface
-  export interface XML {
+}
+
+/**
+ * XML interface
+ */
+export interface XML {
     name?: string;
     namespace?: string;
     prefix?: string;
     attribute?: boolean;
     wrapped?: boolean;
-  }
-  
-  // External Documentation interface
-  export interface ExternalDocumentation {
+}
+ 
+/**
+ * External Documentation interface
+ */
+export interface ExternalDocumentation {
     description?: string;
     url: string;
-  }
-  
-  // Unification request interface
-  export interface UnificationRequest {
+}
+
+/**
+ * Unification request interface
+ */
+export interface UnificationRequest {
     apiName: string;
-  }
-  
-  // Unification response interface
-  export interface UnificationResponse {
+}
+
+/**
+ * Unification response interface
+ */
+export interface UnificationResponse {
     success: boolean;
     message: string;
     document?: UnifiedApiDocument;
     errors?: string[];
-  }
-  
-  // API Response wrapper
-  export interface ApiResponse<T> {
+}
+
+/**
+ * A generic wrapper for API responses.
+ */
+export interface ApiResponse<T> {
     success: boolean;
     message: string;
     data: T;
     timestamp: string;
     errorCode?: string;
-  }
-  
-  class ApiUnificationService {
+}
+
+// ================================================================================================
+// API SERVICE CLASS
+// ================================================================================================
+
+/**
+ * Service class for interacting with the API Unification endpoints.
+ * This class handles all HTTP communication with the backend related to creating,
+ * fetching, and managing unified API documents.
+ */
+class ApiUnificationService {
     private baseUrl = '/api/unification';
-  
+
     /**
-     * Unifies Swagger and Postman documents by API name and saves the unified document
+     * Triggers the unification process on the backend for a given API name.
+     * This process typically involves fetching corresponding Swagger and Postman
+     * documents and merging them into a single UnifiedApiDocument.
+     * @param apiName The name of the API to unify.
+     * @returns A promise that resolves to a confirmation message or ID.
      */
     async unifyAndSaveApiDocuments(apiName: string): Promise<string> {
-        try {
-            const response = await fetch(`${this.baseUrl}/unify?apiName=${encodeURIComponent(apiName)}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-  
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || `HTTP error! status: ${response.status}`);
-            }
-  
-            return await response.text();
-        } catch (error) {
-            console.error('Error unifying API documents:', error);
-            throw error;
-        }
+        // The original method expected text, let's assume the response is the ID of the new document.
+        const response = await apiClient.post<string>(`${this.baseUrl}/unify`, null, { // No body needed if apiName is a param
+            params: { apiName }
+        });
+        return response.data;
     }
 
     /**
      * Updates the runtime configuration for a specific unified API.
-     * @param {string} apiName - The name of the API to configure.
-     * @param {object} apiConfig - The configuration object.
-     * @returns {Promise<object>} The updated unified API document.
+     * @param apiName The name of the API to configure.
+     * @param apiConfig The configuration object to apply.
+     * @returns A promise that resolves to the updated unified API document.
      */
-    async updateConfiguration(apiName, apiConfig) {
-        try {
-            // Note: The backend endpoint was discussed as /api/unified/{apiName}/configuration
-            // I'm using /api/unification for consistency with your other services for now.
-            // Please adjust the URL to match your final backend controller mapping.
-            const response = await fetch(`${this.baseUrl}/${apiName}/configuration`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(apiConfig),
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error updating API configuration:', error);
-            throw error;
-        }
+    async updateConfiguration(apiName: string, apiConfig: object): Promise<UnifiedApiDocument> {
+        const response = await apiClient.put<UnifiedApiDocument>(`${this.baseUrl}/${apiName}/configuration`, apiConfig);
+        return response.data;
     }
-  
+
     /**
-     * Retrieves all unified API documents
+     * Retrieves all unified API documents from the backend as an NDJSON stream.
+     * @returns A promise that resolves to an array of UnifiedApiDocument objects.
      */
     async getAllUnifiedDocuments(): Promise<UnifiedApiDocument[]> {
-        try {
-            const response = await fetch(this.baseUrl, {
-                headers: {
-                    'Accept': 'application/x-ndjson'
-                }
-            });
-  
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-  
-            // Handle NDJSON response
-            const text = await response.text();
-            const documents: UnifiedApiDocument[] = [];
-            
-            if (text.trim()) {
-                const lines = text.trim().split('\n');
-                for (const line of lines) {
-                    if (line.trim()) {
-                        documents.push(JSON.parse(line));
-                    }
-                }
-            }
-  
-            return documents;
-        } catch (error) {
-            console.error('Error fetching unified API documents:', error);
-            throw error;
-        }
+        const response = await apiClient.get<string>(this.baseUrl, {
+            headers: { 'Accept': 'application/x-ndjson' },
+            responseType: 'text',
+        });
+
+        const text = response.data;
+        if (!text || !text.trim()) return [];
+
+        return text.trim().split('\n')
+            .filter(line => line.trim())
+            .map(line => JSON.parse(line));
     }
-  
+
     /**
-     * Retrieves a unified API document by its ID
+     * Retrieves a single unified API document by its unique identifier.
+     * @param id The unique ID of the document.
+     * @returns A promise that resolves to the document, or null if not found (404).
      */
     async getUnifiedDocumentById(id: string): Promise<UnifiedApiDocument | null> {
         try {
-            const response = await fetch(`${this.baseUrl}/${id}`);
-  
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-  
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching unified API document by ID:', error);
+            const response = await apiClient.get<UnifiedApiDocument>(`${this.baseUrl}/${id}`);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     }
-  
+
     /**
-     * Retrieves a unified API document by its name
+     * Retrieves a single unified API document by its name.
+     * @param name The name of the document.
+     * @returns A promise that resolves to the document, or null if not found (404).
      */
     async getUnifiedDocumentByName(name: string): Promise<UnifiedApiDocument | null> {
         try {
-            const response = await fetch(`${this.baseUrl}/by-name?name=${encodeURIComponent(name)}`);
-  
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-  
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching unified API document by name:', error);
-            throw error;
-        }
-    }
-  
-    /**
-     * Gets statistics about unified API documents
-     */
-    async getUnifiedApiStats(): Promise<{
-        totalDocuments: number;
-        totalEndpoints: number;
-        totalSchemas: number;
-        teams: string[];
-        activeDocuments: number;
-        authenticationTypes: string[];
-        lastUpdated?: string;
-        averageEndpointsPerApi: number;
-    }> {
-        try {
-            const documents = await this.getAllUnifiedDocuments();
-  
-            const authTypes = new Set<string>();
-            let totalEndpoints = 0;
-            let totalSchemas = 0;
-  
-            documents.forEach(doc => {
-                if (doc.endpoints) {
-                    totalEndpoints += doc.endpoints.length;
-                }
-                if (doc.schemas) {
-                    totalSchemas += Object.keys(doc.schemas).length;
-                }
-                if (doc.authentication?.type) {
-                    authTypes.add(doc.authentication.type);
-                }
+            const response = await apiClient.get<UnifiedApiDocument>(`${this.baseUrl}/by-name`, {
+                params: { name }
             });
-  
-            const stats = {
-                totalDocuments: documents.length,
-                activeDocuments: documents.filter(doc => doc.active !== false).length,
-                totalEndpoints,
-                totalSchemas,
-                teams: [...new Set(documents.map(doc => doc.team).filter((team): team is string => Boolean(team)))],
-                authenticationTypes: Array.from(authTypes),
-                averageEndpointsPerApi: documents.length > 0 ? Math.round(totalEndpoints / documents.length * 100) / 100 : 0,
-                lastUpdated: documents.reduce((latest, doc) => {
-                    const updated = doc.updatedAt || doc.createdAt;
-                    if (!updated) return latest;
-                    if (!latest) return updated;
-                    return new Date(updated) > new Date(latest) ? updated : latest;
-                }, null as string | null) || undefined
-            };
-  
-            return stats;
-        } catch (error) {
-            console.error('Error getting unified API stats:', error);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     }
-  
+}
+
+/**
+ * Singleton instance of the ApiUnificationService.
+ */
+export const apiUnificationService = new ApiUnificationService();
+
+// ================================================================================================
+// UTILITY FUNCTIONS
+// ================================================================================================
+
+/**
+ * A collection of pure utility functions for processing UnifiedApiDocument objects.
+ * This separation makes the logic reusable and easily testable.
+ */
+export const UnifiedApiUtils = {
+
     /**
-     * Helper to extract basic information from a unified API document
+     * Extracts a simplified, display-friendly info object from a full unified document.
+     * @param document The full UnifiedApiDocument object.
+     * @returns A flattened object with key information for UI display.
      */
-    static extractBasicInfo(document: UnifiedApiDocument) {
+    extractBasicInfo(document: UnifiedApiDocument) {
         return {
             id: document._id || document.id,
             name: document.name || 'Unnamed API',
@@ -463,48 +433,52 @@ export interface UnifiedApiDocument {
             lastModifiedBy: document.lastModifiedBy,
             active: document.active !== false // Default to true if not specified
         };
-    }
-  
+    },
+
     /**
      * Helper to get all HTTP methods used in the unified document
      */
-    static getUsedHttpMethods(document: UnifiedApiDocument): string[] {
+    getUsedHttpMethods(document: UnifiedApiDocument): string[] {
         if (!document.endpoints) return [];
-  
+
         const methods = new Set<string>();
         document.endpoints.forEach(endpoint => {
             if (endpoint.method) {
                 methods.add(endpoint.method.toUpperCase());
             }
         });
-  
+
         return Array.from(methods).sort();
-    }
-  
+    },
+
     /**
-     * Helper to get all unique tags from endpoints
+     * Helper to get all HTTP methods used in the unified document.
+     * @param document The UnifiedApiDocument.
+     * @returns A sorted array of unique uppercase HTTP methods.
      */
-    static getAllEndpointTags(document: UnifiedApiDocument): string[] {
+    getAllEndpointTags(document: UnifiedApiDocument): string[] {
         if (!document.endpoints) return [];
-  
+
         const tags = new Set<string>();
         document.endpoints.forEach(endpoint => {
             if (endpoint.tags) {
                 endpoint.tags.forEach(tag => tags.add(tag));
             }
         });
-  
+
         return Array.from(tags).sort();
-    }
-  
+    },
+
     /**
-     * Helper to get endpoints grouped by tag
+     * Helper to get all unique tags from all endpoints in a document.
+     * @param document The UnifiedApiDocument.
+     * @returns A sorted array of unique tags.
      */
-    static getEndpointsByTag(document: UnifiedApiDocument): Record<string, UnifiedEndpoint[]> {
+    getEndpointsByTag(document: UnifiedApiDocument): Record<string, UnifiedEndpoint[]> {
         if (!document.endpoints) return {};
-  
+
         const endpointsByTag: Record<string, UnifiedEndpoint[]> = {};
-        
+
         document.endpoints.forEach(endpoint => {
             if (endpoint.tags && endpoint.tags.length > 0) {
                 endpoint.tags.forEach(tag => {
@@ -521,25 +495,29 @@ export interface UnifiedApiDocument {
                 endpointsByTag['default'].push(endpoint);
             }
         });
-  
+
         return endpointsByTag;
-    }
-  
+    },
+
     /**
-     * Helper to get server URLs
+     * Groups endpoints by their tag. Endpoints without tags are grouped under 'default'.
+     * @param document The UnifiedApiDocument.
+     * @returns A record where keys are tags and values are arrays of endpoints.
      */
-    static getServerUrls(document: UnifiedApiDocument): string[] {
+    getServerUrls(document: UnifiedApiDocument): string[] {
         if (!document.servers) return document.baseUrl ? [document.baseUrl] : [];
-  
+
         return document.servers.map(server => server.url).filter(Boolean);
-    }
-  
+    },
+
     /**
-     * Helper to format dates
+     * Formats an ISO date string into a more readable local format.
+     * Example: "Sep 12, 2025, 12:05 PM"
+     * @param dateString The ISO-formatted date string to format.
+     * @returns A formatted string for UI display, or 'N/A' if the date is not provided.
      */
-    static formatDate(dateString?: string): string {
+    formatDate(dateString?: string): string {
         if (!dateString) return 'N/A';
-  
         try {
             return new Date(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -549,23 +527,31 @@ export interface UnifiedApiDocument {
                 minute: '2-digit'
             });
         } catch {
-            return dateString;
+            return dateString; // Fallback to the original string if formatting fails
         }
-    }
-  
+    },
+
     /**
-     * Helper to get status color based on document state
+     * Determines a status color based on the document's state.
+     * This is useful for conditional styling in the UI.
+     * - Red: The document is explicitly marked as inactive.
+     * - Yellow: The document is active but contains no endpoints (incomplete).
+     * - Green: The document is active and has endpoints.
+     * @param document The UnifiedApiDocument to evaluate.
+     * @returns A color string ('green', 'red', or 'yellow') representing the status.
      */
-    static getStatusColor(document: UnifiedApiDocument): 'green' | 'red' | 'yellow' {
+    getStatusColor(document: UnifiedApiDocument): 'green' | 'red' | 'yellow' {
         if (document.active === false) return 'red';
         if (!document.endpoints || document.endpoints.length === 0) return 'yellow';
         return 'green';
-    }
-  
+    },
+
     /**
-     * Helper to get authentication status
+     * Extracts a summary of the authentication status from a unified document.
+     * @param document The UnifiedApiDocument to inspect.
+     * @returns An object detailing if authentication is defined, its type, and description.
      */
-    static getAuthenticationStatus(document: UnifiedApiDocument): {
+    getAuthenticationStatus(document: UnifiedApiDocument): {
         hasAuth: boolean;
         type?: string;
         description?: string;
@@ -575,12 +561,19 @@ export interface UnifiedApiDocument {
             type: document.authentication?.type,
             description: document.authentication?.description
         };
-    }
-  
+    },
+
     /**
-     * Helper to get schema complexity score
+     * Calculates a complexity score for the API's schemas.
+     * This score provides a quantitative measure of how complex an API's data models are,
+     * which can be useful for dashboards and analysis. The score is weighted based on the
+     * number of total schemas, nested schemas (with properties), and schemas that use
+     * composition (allOf, oneOf, anyOf).
+     * @param document The UnifiedApiDocument to analyze.
+     * @returns An object containing the score, a qualitative level ('low', 'medium', 'high'),
+     * and detailed counts.
      */
-    static getSchemaComplexity(document: UnifiedApiDocument): {
+    getSchemaComplexity(document: UnifiedApiDocument): {
         score: number;
         level: 'low' | 'medium' | 'high';
         details: {
@@ -596,12 +589,12 @@ export interface UnifiedApiDocument {
                 details: { totalSchemas: 0, nestedSchemas: 0, referencedSchemas: 0 }
             };
         }
-  
+
         const schemas = Object.values(document.schemas);
         const totalSchemas = schemas.length;
         let nestedSchemas = 0;
         let referencedSchemas = 0;
-  
+
         schemas.forEach(schema => {
             if (schema.properties && Object.keys(schema.properties).length > 0) {
                 nestedSchemas++;
@@ -610,35 +603,40 @@ export interface UnifiedApiDocument {
                 referencedSchemas++;
             }
         });
-  
+
+        // The scoring algorithm weights nested and referenced schemas more heavily.
         const score = totalSchemas + (nestedSchemas * 2) + (referencedSchemas * 3);
         let level: 'low' | 'medium' | 'high' = 'low';
-  
+
         if (score > 50) level = 'high';
         else if (score > 20) level = 'medium';
-  
+
         return {
             score,
             level,
             details: { totalSchemas, nestedSchemas, referencedSchemas }
         };
-    }
-  
+    },
+
     /**
-     * Helper to validate unified document structure
+     * Performs a basic structural validation of a unified document.
+     * It checks for the presence of required fields and consistency, separating
+     * issues into hard errors (making the document invalid) and soft warnings.
+     * @param document The UnifiedApiDocument to validate.
+     * @returns An object containing a validity flag, and lists of errors and warnings.
      */
-    static validateUnifiedDocument(document: UnifiedApiDocument): {
+    validateUnifiedDocument(document: UnifiedApiDocument): {
         isValid: boolean;
         errors: string[];
         warnings: string[];
     } {
         const errors: string[] = [];
         const warnings: string[] = [];
-  
+
         // Required fields validation
         if (!document.name) errors.push('Document name is required');
         if (!document.team) errors.push('Team is required');
-  
+
         // Endpoints validation
         if (!document.endpoints || document.endpoints.length === 0) {
             warnings.push('Document has no endpoints defined');
@@ -647,29 +645,33 @@ export interface UnifiedApiDocument {
                 if (!endpoint.path) errors.push(`Endpoint ${index + 1}: path is required`);
                 if (!endpoint.method) errors.push(`Endpoint ${index + 1}: method is required`);
                 if (!endpoint.responses || Object.keys(endpoint.responses).length === 0) {
-                    warnings.push(`Endpoint ${index + 1}: no responses defined`);
+                    warnings.push(`Endpoint ${index + 1} (${endpoint.method} ${endpoint.path}): no responses defined`);
                 }
             });
         }
-  
+
         // Servers validation
         if (document.servers) {
             document.servers.forEach((server, index) => {
                 if (!server.url) errors.push(`Server ${index + 1}: URL is required`);
             });
         }
-  
+
         return {
             isValid: errors.length === 0,
             errors,
             warnings
         };
-    }
-  
+    },
+
     /**
-     * Helper to search endpoints by criteria
+     * Filters the endpoints of a document based on a set of search criteria.
+     * The search is case-insensitive and uses partial matching ('includes') for strings.
+     * @param document The UnifiedApiDocument containing the endpoints to search.
+     * @param criteria An object with optional search fields (method, path, tag, summary).
+     * @returns An array of UnifiedEndpoint objects that match the criteria.
      */
-    static searchEndpoints(
+    searchEndpoints(
         document: UnifiedApiDocument,
         criteria: {
             method?: string;
@@ -679,12 +681,12 @@ export interface UnifiedApiDocument {
         }
     ): UnifiedEndpoint[] {
         if (!document.endpoints) return [];
-  
+
         return document.endpoints.filter(endpoint => {
             if (criteria.method && endpoint.method?.toLowerCase() !== criteria.method.toLowerCase()) {
                 return false;
             }
-            if (criteria.path && !endpoint.path?.includes(criteria.path)) {
+            if (criteria.path && !endpoint.path?.toLowerCase().includes(criteria.path.toLowerCase())) {
                 return false;
             }
             if (criteria.tag && !endpoint.tags?.includes(criteria.tag)) {
@@ -696,7 +698,4 @@ export interface UnifiedApiDocument {
             return true;
         });
     }
-  }
-  
-  export const apiUnificationService = new ApiUnificationService();
-  export default apiUnificationService;
+}

@@ -1,176 +1,182 @@
-// Tipo genérico para el documento de MongoDB
+import apiClient from '../api/axiosConfig';
+
+// ================================================================================================
+// TYPE DEFINITIONS
+// ================================================================================================
+
+/**
+ * A generic interface for a document representing a unified API.
+ * It's recommended to use the more specific 'UnifiedApiDocument' where possible.
+ */
 export interface ApiDocument {
     _id?: string;
     id?: string;
-    [key: string]: any; // Permite cualquier propiedad adicional
+    name?: string;
+    description?: string;
+    version?: string;
+    team?: string;
+    baseUrl?: string;
+    endpoints?: any[];
+    servers?: any[];
+    createdAt?: string;
+    updatedAt?: string;
+    active?: boolean;
+    [key: string]: any; // Allows for any additional properties
 }
 
-// Respuesta del endpoint de lista
+/**
+ * Defines the structure for a paginated list response from the API.
+ */
 export interface ApiListResponse {
     content: ApiDocument[];
     totalElements: number;
     totalPages: number;
     size: number;
-    number: number;
+    number: number; // The current page number
 }
 
+// ================================================================================================
+// API SERVICE CLASS
+// ================================================================================================
+
+/**
+ * A generic service for fetching and managing unified API documents.
+ * This class handles all HTTP communication for listing, searching, and retrieving
+ * individual API documents.
+ */
 class ApiService {
     private baseUrl = '/api/unification';
 
     /**
-     * Obtiene todas las APIs con paginación opcional
+     * Retrieves a paginated list of all unified APIs.
+     * @param page The page number to retrieve (0-indexed).
+     * @param size The number of items per page.
+     * @returns A promise that resolves to a paginated list of API documents.
      */
-    async getAllApis(page: number = 0, size: number = 20): Promise<ApiListResponse> {
-        try {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                size: size.toString()
-            });
+    async getAllApis(page = 0, size = 20): Promise<ApiListResponse> {
+        const response = await apiClient.get<ApiListResponse | ApiDocument[]>(this.baseUrl, {
+            params: { page, size }
+        });
 
-            const response = await fetch(`${this.baseUrl}?${params}`);
+        const data = response.data;
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            // Si el backend devuelve un array simple (sin paginación)
-            if (Array.isArray(data)) {
-                return {
-                    content: data,
-                    totalElements: data.length,
-                    totalPages: 1,
-                    size: data.length,
-                    number: 0
-                };
-            }
-
-            // Si el backend devuelve con paginación
-            return data;
-        } catch (error) {
-            console.error('Error fetching APIs:', error);
-            throw error;
+        // Handle cases where the backend might return a simple array instead of a paginated object
+        if (Array.isArray(data)) {
+            return {
+                content: data,
+                totalElements: data.length,
+                totalPages: 1,
+                size: data.length,
+                number: 0
+            };
         }
+        
+        return data as ApiListResponse;
     }
 
     /**
-     * Obtiene todas las APIs sin paginación (para casos simples)
+     * Retrieves all APIs as a simple, non-paginated list.
+     * Note: This fetches a large number of items and should be used cautiously.
+     * @returns A promise that resolves to an array of all API documents.
      */
     async getAllApisSimple(): Promise<ApiDocument[]> {
-        try {
-            const response = await this.getAllApis(0, 1000); // Obtener muchas de una vez
-            return response.content;
-        } catch (error) {
-            console.error('Error fetching APIs:', error);
-            throw error;
-        }
+        // Fetch a large page to simulate getting all documents.
+        // A dedicated backend endpoint would be more efficient.
+        const response = await this.getAllApis(0, 1000);
+        return response.content;
     }
 
     /**
-     * Obtiene una API por su ID
+     * Retrieves a single API document by its unique identifier.
+     * @param id The unique ID of the document.
+     * @returns A promise that resolves to the document, or null if not found (404).
      */
     async getApiById(id: string): Promise<ApiDocument | null> {
         try {
-            const response = await fetch(`${this.baseUrl}/${id}`);
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching API by ID:', error);
+            const response = await apiClient.get<ApiDocument>(`${this.baseUrl}/${id}`);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     }
 
     /**
-     * Obtiene una API por su nombre
+     * Retrieves a single API document by its name.
+     * @param name The name of the document.
+     * @returns A promise that resolves to the document, or null if not found (404).
      */
     async getApiByName(name: string): Promise<ApiDocument | null> {
         try {
-            const response = await fetch(`${this.baseUrl}/by-name?name=${encodeURIComponent(name)}`);
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching API by name:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Busca APIs por término de búsqueda
-     */
-    async searchApis(searchTerm: string, page: number = 0, size: number = 20): Promise<ApiListResponse> {
-        try {
-            const params = new URLSearchParams({
-                search: searchTerm,
-                page: page.toString(),
-                size: size.toString()
+            const response = await apiClient.get<ApiDocument>(`${this.baseUrl}/by-name`, {
+                params: { name }
             });
-
-            const response = await fetch(`${this.baseUrl}/search?${params}`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error searching APIs:', error);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     }
 
     /**
-     * Obtiene estadísticas de las APIs
+     * Searches for APIs based on a search term, with pagination.
+     * @param searchTerm The term to search for in the API documents.
+     * @param page The page number to retrieve (0-indexed).
+     * @param size The number of items per page.
+     * @returns A promise that resolves to a paginated list of matching API documents.
      */
-    async getApiStats(): Promise<{
+    async searchApis(searchTerm: string, page = 0, size = 20): Promise<ApiListResponse> {
+        const response = await apiClient.get<ApiListResponse>(`${this.baseUrl}/search`, {
+            params: { search: searchTerm, page, size }
+        });
+        return response.data;
+    }
+}
+
+/**
+ * Singleton instance of the ApiService.
+ */
+export const apiService = new ApiService();
+
+// ================================================================================================
+// UTILITY FUNCTIONS
+// ================================================================================================
+
+/**
+ * A collection of pure utility functions for processing generic ApiDocument objects.
+ */
+export const ApiUtils = {
+    /**
+     * Calculates and returns a set of statistics from an array of API documents.
+     * @param apis An array of ApiDocument objects.
+     * @returns An object containing calculated statistics.
+     */
+    getApiStats(apis: ApiDocument[]): {
         totalApis: number;
         totalEndpoints: number;
         teams: string[];
         lastUpdated?: string;
-    }> {
-        try {
-            const apis = await this.getAllApisSimple();
-
-            const stats = {
-                totalApis: apis.length,
-                totalEndpoints: apis.reduce((total, api) => {
-                    const endpoints = api.endpoints || [];
-                    return total + (Array.isArray(endpoints) ? endpoints.length : 0);
-                }, 0),
-                teams: [...new Set(apis.map(api => api.team).filter(Boolean))],
-                lastUpdated: apis.reduce((latest, api) => {
-                    const updated = api.updatedAt || api.createdAt;
-                    if (!updated) return latest;
-                    if (!latest) return updated;
-                    return new Date(updated) > new Date(latest) ? updated : latest;
-                }, null as string | null) || undefined
-            };
-
-            return stats;
-        } catch (error) {
-            console.error('Error getting API stats:', error);
-            throw error;
-        }
-    }
-
+    } {
+        const stats = {
+            totalApis: apis.length,
+            totalEndpoints: apis.reduce((total, api) => total + (api.endpoints?.length || 0), 0),
+            teams: [...new Set(apis.map(api => api.team).filter((team): team is string => !!team))],
+            lastUpdated: apis.reduce((latest, api) => {
+                const updated = api.updatedAt || api.createdAt;
+                if (!updated) return latest;
+                if (!latest) return updated;
+                return new Date(updated) > new Date(latest) ? updated : latest;
+            }, null as string | null) || undefined
+        };
+        return stats;
+    },
+    
     /**
-     * Helpers para extraer información común de los documentos
+     * Extracts a simplified, display-friendly info object from a full API document.
+     * @param api The full ApiDocument object.
+     * @returns A flattened object with key information.
      */
-    static extractBasicInfo(api: ApiDocument) {
+    extractBasicInfo(api: ApiDocument) {
         return {
             id: api._id || api.id,
             name: api.name || 'Unnamed API',
@@ -178,56 +184,55 @@ class ApiService {
             version: api.version,
             team: api.team,
             baseUrl: api.baseUrl,
-            endpointCount: Array.isArray(api.endpoints) ? api.endpoints.length : 0,
-            serverCount: Array.isArray(api.servers) ? api.servers.length : 0,
+            endpointCount: api.endpoints?.length || 0,
+            serverCount: api.servers?.length || 0,
             createdAt: api.createdAt,
             updatedAt: api.updatedAt,
-            active: api.active !== false // Por defecto true si no está especificado
+            active: api.active !== false
         };
-    }
+    },
 
     /**
-     * Helper para formatear fechas
+     * Formats a Unix timestamp or ISO date string into a readable local format.
+     * @param timestamp The timestamp (number in seconds) or ISO string.
+     * @returns A formatted string (e.g., "12/09/2025, 15:45:30"), or 'N/A'.
      */
-    static formatDate(dateString?: string): string {
-        if (!dateString) return 'N/A';
-
+    formatDate(timestamp?: string | number): string {
+        if (!timestamp) return 'N/A';
         try {
-            return new Date(dateString).toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+            // Handle both Unix timestamps (numbers) and ISO strings
+            const date = typeof timestamp === 'number' ? new Date(timestamp * 1000) : new Date(timestamp);
+            return date.toLocaleString('en-US', { 
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
             });
         } catch {
-            return dateString;
+            return String(timestamp);
         }
-    }
+    },
 
     /**
-     * Helper para obtener el color del estado
+     * Determines a status color based on the document's state.
+     * @param api The ApiDocument to evaluate.
+     * @returns A color string ('green', 'red', or 'yellow').
      */
-    static getStatusColor(api: ApiDocument): 'green' | 'red' | 'yellow' {
+    getStatusColor(api: ApiDocument): 'green' | 'red' | 'yellow' {
         if (api.active === false) return 'red';
         if (!api.endpoints || api.endpoints.length === 0) return 'yellow';
         return 'green';
-    }
+    },
 
     /**
-     * Helper para obtener servidores como strings
+     * Extracts all server URLs from an API document.
+     * @param api The ApiDocument.
+     * @returns An array of server URL strings.
      */
-    static getServerUrls(api: ApiDocument): string[] {
+    getServerUrls(api: ApiDocument): string[] {
         if (!api.servers || !Array.isArray(api.servers)) {
             return api.baseUrl ? [api.baseUrl] : [];
         }
-
-        return api.servers.map((server: any) => {
-            if (typeof server === 'string') return server;
-            return server.url || server.baseUrl || '';
-        }).filter(Boolean);
+        return api.servers
+            .map((server: any) => server.url || server.baseUrl || '')
+            .filter(Boolean);
     }
-}
-
-export const apiService = new ApiService();
-export default apiService;
+};

@@ -1,11 +1,19 @@
-// Generic type for MongoDB document
+import apiClient from '../api/axiosConfig';
+
+// ================================================================================================
+// TYPE DEFINITIONS
+// ================================================================================================
+
+/**
+ * Represents the structure of a Swagger/OpenAPI document stored in MongoDB.
+ */
 export interface SwaggerDocument {
     _id?: string;
     id?: string;
     name: string;
     description?: string;
     originalFileName?: string;
-    openApi?: any; // OpenAPI specification object
+    openApi?: any; // The full OpenAPI specification object
     tags?: string[];
     team: string;
     createdAt?: string;
@@ -13,10 +21,12 @@ export interface SwaggerDocument {
     createdBy: string;
     lastModifiedBy?: string;
     active?: boolean;
-    [key: string]: any; // Allows any additional property
+    [key: string]: any; // Allows for additional, untyped properties
 }
 
-// API Response wrapper
+/**
+ * A generic wrapper for API responses from the backend.
+ */
 export interface ApiResponse<T> {
     success: boolean;
     message: string;
@@ -25,287 +35,198 @@ export interface ApiResponse<T> {
     errorCode?: string;
 }
 
-// List response for paginated results
-export interface SwaggerListResponse {
-    content: SwaggerDocument[];
-    totalElements: number;
-    totalPages: number;
-    size: number;
-    number: number;
-}
-
-// Import request interface
+/**
+ * Defines the structure for a request to import a document.
+ */
 export interface ImportRequest {
     name: string;
     team: string;
     createdBy: string;
     description?: string;
-    contentType?: string;
 }
 
-class SwaggerService {
+// ================================================================================================
+// API SERVICE CLASS
+// ================================================================================================
+
+/**
+ * Service class for interacting with the Swagger/OpenAPI document API endpoints.
+ *
+ * This class handles all HTTP communication with the backend for Swagger-related
+ * operations. It uses the centralized `apiClient` to ensure all requests are
+ * authenticated and consistently handled.
+ */
+class SwaggerApiService {
     private baseUrl = '/api/swagger';
 
     /**
-     * Retrieves all Swagger documents
+     * Retrieves all Swagger documents from the backend as an NDJSON stream.
+     * @returns A promise that resolves to an array of SwaggerDocument objects.
      */
     async getAllSwaggerDocuments(): Promise<SwaggerDocument[]> {
-        try {
-            const response = await fetch(this.baseUrl, {
-                headers: {
-                    'Accept': 'application/x-ndjson'
-                }
-            });
+        const response = await apiClient.get<string>(this.baseUrl, {
+            headers: { 'Accept': 'application/x-ndjson' },
+            responseType: 'text' // Important: handle the response as raw text first
+        });
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+        const text = response.data;
+        if (!text || !text.trim()) return [];
 
-            // Handle NDJSON response
-            const text = await response.text();
-            const documents: SwaggerDocument[] = [];
-            
-            if (text.trim()) {
-                const lines = text.trim().split('\n');
-                for (const line of lines) {
-                    if (line.trim()) {
-                        documents.push(JSON.parse(line));
-                    }
-                }
-            }
-
-            return documents;
-        } catch (error) {
-            console.error('Error fetching Swagger documents:', error);
-            throw error;
-        }
+        // Parse the NDJSON text response into an array of documents
+        return text.trim().split('\n')
+            .filter(line => line.trim())
+            .map(line => JSON.parse(line));
     }
 
     /**
-     * Retrieves a Swagger document by its ID
+     * Retrieves a single Swagger document by its unique identifier.
+     * @param id The unique ID of the Swagger document.
+     * @returns A promise that resolves to the document, or null if not found (404).
      */
     async getSwaggerDocumentById(id: string): Promise<SwaggerDocument | null> {
         try {
-            const response = await fetch(`${this.baseUrl}/${id}`);
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching Swagger document by ID:', error);
+            const response = await apiClient.get<SwaggerDocument>(`${this.baseUrl}/${id}`);
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     }
 
     /**
-     * Retrieves a Swagger document by its name
+     * Retrieves a single Swagger document by its name.
+     * @param name The name of the Swagger document.
+     * @returns A promise that resolves to the document, or null if not found (404).
      */
     async getSwaggerDocumentByName(name: string): Promise<SwaggerDocument | null> {
         try {
-            const response = await fetch(`${this.baseUrl}/by-name?name=${encodeURIComponent(name)}`);
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    return null;
-                }
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error fetching Swagger document by name:', error);
+            const response = await apiClient.get<SwaggerDocument>(`${this.baseUrl}/by-name`, {
+                params: { name } // Axios handles URL encoding for query parameters
+            });
+            return response.data;
+        } catch (error: any) {
+            if (error.response?.status === 404) return null;
             throw error;
         }
     }
 
     /**
-     * Creates or updates a Swagger document
+     * Creates or updates a Swagger document by sending the full object.
+     * @param document The SwaggerDocument object to save.
+     * @returns A promise that resolves to the saved document.
      */
     async saveSwaggerDocument(document: SwaggerDocument): Promise<SwaggerDocument> {
-        try {
-            const response = await fetch(this.baseUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(document)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error saving Swagger document:', error);
-            throw error;
-        }
+        const response = await apiClient.post<SwaggerDocument>(this.baseUrl, document);
+        return response.data;
     }
 
     /**
-     * Deletes a Swagger document by its ID
+     * Deletes a Swagger document by its unique identifier.
+     * @param id The ID of the document to delete.
+     * @returns A promise that resolves when the deletion is complete.
      */
     async deleteSwaggerDocument(id: string): Promise<void> {
-        try {
-            const response = await fetch(`${this.baseUrl}/${id}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-        } catch (error) {
-            console.error('Error deleting Swagger document:', error);
-            throw error;
-        }
+        await apiClient.delete(`${this.baseUrl}/${id}`);
     }
 
     /**
-     * Imports a Swagger document from a file
+     * Imports a Swagger document by uploading a file.
+     * @param file The file object (from an input element).
+     * @param importData Metadata for the import (name, team, etc.).
+     * @returns A promise that resolves to the newly created SwaggerDocument.
      */
-    async importFromFile(
-        file: File, 
-        importData: ImportRequest
-    ): Promise<SwaggerDocument> {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('name', importData.name);
-            formData.append('team', importData.team);
-            formData.append('createdBy', importData.createdBy);
-            
-            if (importData.description) {
-                formData.append('description', importData.description);
-            }
-
-            const response = await fetch(`${this.baseUrl}/import`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error importing Swagger document from file:', error);
-            throw error;
+    async importFromFile(file: File, importData: ImportRequest): Promise<SwaggerDocument> {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', importData.name);
+        formData.append('team', importData.team);
+        formData.append('createdBy', importData.createdBy);
+        if (importData.description) {
+            formData.append('description', importData.description);
         }
+
+        const response = await apiClient.post<SwaggerDocument>(`${this.baseUrl}/import`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
     }
 
     /**
-     * Imports a Swagger document from JSON/YAML content
+     * Imports a Swagger document from raw JSON/YAML string content.
+     * @param content The raw string content (JSON or YAML).
+     * @param importData Metadata including the content type ('json' or 'yaml').
+     * @returns A promise that resolves to the newly created SwaggerDocument.
      */
-    async importFromContent(
-        content: string,
-        importData: ImportRequest & { contentType: string }
-    ): Promise<SwaggerDocument> {
-        try {
-            const params = new URLSearchParams({
+    async importFromContent(content: string, importData: ImportRequest & { contentType: string }): Promise<SwaggerDocument> {
+        const response = await apiClient.post<SwaggerDocument>(`${this.baseUrl}/import-json`, content, {
+            params: {
                 name: importData.name,
                 team: importData.team,
                 createdBy: importData.createdBy,
-                contentType: importData.contentType
-            });
-
-            if (importData.description) {
-                params.append('description', importData.description);
-            }
-
-            const response = await fetch(`${this.baseUrl}/import-json?${params}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': importData.contentType === 'yaml' ? 'text/plain' : 'application/json'
-                },
-                body: content
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error importing Swagger document from content:', error);
-            throw error;
-        }
+                contentType: importData.contentType,
+                description: importData.description,
+            },
+            headers: {
+                'Content-Type': importData.contentType === 'yaml' ? 'text/plain' : 'application/json'
+            },
+        });
+        return response.data;
     }
 
     /**
-     * Performs a health check on the Swagger service
+     * Performs a health check on the Swagger service endpoint.
+     * @returns A promise that resolves to the API's health status response.
      */
     async healthCheck(): Promise<ApiResponse<string>> {
-        try {
-            const response = await fetch(`${this.baseUrl}/health`);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        } catch (error) {
-            console.error('Error performing health check:', error);
-            throw error;
-        }
+        const response = await apiClient.get<ApiResponse<string>>(`${this.baseUrl}/health`);
+        return response.data;
     }
 
     /**
-     * Gets statistics about Swagger documents
+     * Retrieves calculated statistics about all Swagger documents.
+     * NOTE: This logic performs a fetch and then client-side calculations. For performance,
+     * consider creating a dedicated backend endpoint (e.g., /api/swagger/stats) in the future.
+     * @returns A promise that resolves to an object with calculated stats.
      */
-    async getSwaggerStats(): Promise<{
-        totalDocuments: number;
-        totalEndpoints: number;
-        teams: string[];
-        activeDocuments: number;
-        lastUpdated?: string;
-    }> {
-        try {
-            const documents = await this.getAllSwaggerDocuments();
-
-            const stats = {
-                totalDocuments: documents.length,
-                activeDocuments: documents.filter(doc => doc.active !== false).length,
-                totalEndpoints: documents.reduce((total, doc) => {
-                    // Extract endpoint count from OpenAPI specification
-                    if (doc.openApi?.paths) {
-                        const paths = Object.keys(doc.openApi.paths);
-                        const endpointCount = paths.reduce((count, path) => {
-                            const pathItem = doc.openApi.paths[path];
-                            const methods = Object.keys(pathItem).filter(key => 
-                                ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].includes(key)
-                            );
-                            return count + methods.length;
-                        }, 0);
-                        return total + endpointCount;
-                    }
-                    return total;
-                }, 0),
-                teams: [...new Set(documents.map(doc => doc.team).filter(Boolean))],
-                lastUpdated: documents.reduce((latest, doc) => {
-                    const updated = doc.updatedAt || doc.createdAt;
-                    if (!updated) return latest;
-                    if (!latest) return updated;
-                    return new Date(updated) > new Date(latest) ? updated : latest;
-                }, null as string | null) || undefined
-            };
-
-            return stats;
-        } catch (error) {
-            console.error('Error getting Swagger stats:', error);
-            throw error;
-        }
+    async getSwaggerStats(): Promise<any> { // Define a proper type for the stats object
+        const documents = await this.getAllSwaggerDocuments();
+        const stats = {
+            totalDocuments: documents.length,
+            activeDocuments: documents.filter(doc => doc.active !== false).length,
+            totalEndpoints: documents.reduce((total, doc) => {
+                const endpoints = SwaggerUtils.getEndpoints(doc);
+                return total + endpoints.length;
+            }, 0),
+            teams: [...new Set(documents.map(doc => doc.team).filter(Boolean))],
+            lastUpdated: documents.reduce((latest, doc) => {
+                const updated = doc.updatedAt || doc.createdAt;
+                if (!updated) return latest;
+                if (!latest) return updated;
+                return new Date(updated) > new Date(latest) ? updated : latest;
+            }, null as string | null) || undefined
+        };
+        return stats;
     }
+}
+
+// ================================================================================================
+// UTILITY FUNCTIONS
+// ================================================================================================
+
+/**
+ * A collection of pure utility functions for processing SwaggerDocument objects.
+ * These helpers are static-like and do not depend on the API service state.
+ * Grouping them here makes them reusable, testable, and separates business
+ * logic from data fetching.
+ */
+export const SwaggerUtils = {
 
     /**
-     * Helper to extract basic information from a Swagger document
+     * Extracts a simplified, display-friendly info object from a full document.
+     * @param document The full SwaggerDocument object.
+     * @returns A flattened object with key information for UI display.
      */
-    static extractBasicInfo(document: SwaggerDocument) {
+    extractBasicInfo(document: SwaggerDocument) {
         return {
             id: document._id || document.id,
             name: document.name || 'Unnamed Document',
@@ -324,14 +245,15 @@ class SwaggerService {
             lastModifiedBy: document.lastModifiedBy,
             active: document.active !== false // Default to true if not specified
         };
-    }
+    },
 
     /**
-     * Helper to format dates
+     * Formats an ISO date string into a more readable local format (e.g., "Sep 12, 2025, 12:05 PM").
+     * @param dateString The ISO date string to format.
+     * @returns A formatted string, or 'N/A' if the date is not provided.
      */
-    static formatDate(dateString?: string): string {
+    formatDate(dateString?: string): string {
         if (!dateString) return 'N/A';
-
         try {
             return new Date(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
@@ -341,36 +263,41 @@ class SwaggerService {
                 minute: '2-digit'
             });
         } catch {
-            return dateString;
+            return dateString; // Return original string if formatting fails
         }
-    }
+    },
 
     /**
-     * Helper to get status color based on document state
+     * Determines a status color based on the document's state.
+     * @param document The SwaggerDocument to evaluate.
+     * @returns A color string ('green', 'red', or 'yellow') representing the status.
      */
-    static getStatusColor(document: SwaggerDocument): 'green' | 'red' | 'yellow' {
+    getStatusColor(document: SwaggerDocument): 'green' | 'red' | 'yellow' {
         if (document.active === false) return 'red';
         if (!document.openApi?.paths || Object.keys(document.openApi.paths).length === 0) return 'yellow';
         return 'green';
-    }
+    },
 
     /**
-     * Helper to get server URLs from OpenAPI specification
+     * Extracts all server URLs from the OpenAPI specification's 'servers' array.
+     * @param document The SwaggerDocument.
+     * @returns An array of server URL strings.
      */
-    static getServerUrls(document: SwaggerDocument): string[] {
+    getServerUrls(document: SwaggerDocument): string[] {
         if (!document.openApi?.servers || !Array.isArray(document.openApi.servers)) {
             return [];
         }
-
-        return document.openApi.servers.map((server: any) => {
-            return server.url || '';
-        }).filter(Boolean);
-    }
+        return document.openApi.servers
+            .map((server: any) => server.url || '')
+            .filter(Boolean); // Filter out any empty or null URLs
+    },
 
     /**
-     * Helper to get all HTTP methods and paths from OpenAPI specification
+     * Extracts and flattens all endpoints (path + method) from the OpenAPI specification.
+     * @param document The SwaggerDocument.
+     * @returns An array of objects, each representing a specific endpoint.
      */
-    static getEndpoints(document: SwaggerDocument): Array<{
+    getEndpoints(document: SwaggerDocument): Array<{
         path: string;
         method: string;
         summary?: string;
@@ -385,10 +312,10 @@ class SwaggerService {
             operationId?: string;
         }> = [];
 
+        const validMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
+        
         Object.entries(document.openApi.paths).forEach(([path, pathItem]: [string, any]) => {
-            const methods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
-            
-            methods.forEach(method => {
+            validMethods.forEach(method => {
                 if (pathItem[method]) {
                     endpoints.push({
                         path,
@@ -401,26 +328,34 @@ class SwaggerService {
         });
 
         return endpoints;
-    }
+    },
 
     /**
-     * Helper to validate if content is valid JSON or YAML
+     * Validates if a string content is valid JSON or YAML.
+     * Note: YAML validation is basic. For strict validation, a dedicated library is recommended.
+     * @param content The string content to validate.
+     * @param contentType The format to validate against ('json' or 'yaml').
+     * @returns True if the content is valid, otherwise false.
      */
-    static validateContent(content: string, contentType: 'json' | 'yaml'): boolean {
+    validateContent(content: string, contentType: 'json' | 'yaml'): boolean {
         try {
             if (contentType === 'json') {
                 JSON.parse(content);
                 return true;
             } else if (contentType === 'yaml') {
-                // Basic YAML validation - you might want to use a proper YAML parser
-                return content.trim().length > 0 && !content.startsWith('{');
+                // Basic check: not empty and doesn't look like JSON.
+                // For robust validation, a library like 'js-yaml' would be needed.
+                return content.trim().length > 0 && !content.trim().startsWith('{');
             }
             return false;
         } catch {
             return false;
         }
     }
-}
+};
 
-export const swaggerService = new SwaggerService();
-export default swaggerService;
+/**
+ * Singleton instance of the SwaggerApiService.
+ * This ensures that the same instance is used throughout the application.
+ */
+export const swaggerService = new SwaggerApiService();

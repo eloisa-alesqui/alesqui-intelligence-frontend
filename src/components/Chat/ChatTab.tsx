@@ -1,15 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { apiService } from '../../services/apiService';
+import React, { useState, useEffect, useMemo } from 'react';
+import { apiService, ApiDocument } from '../../services/apiService';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import ExampleQueries from './ExampleQueries';
 import { useChat } from '../../hooks/useChat';
+import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
 import { Bot, Trash2 } from 'lucide-react';
 
-const ChatTab = ({ addNotification }) => {
-    const [configuredApis, setConfiguredApis] = useState([]);
+/**
+ * The main component for the Chat tab.
+ * It orchestrates the chat interface, including message display, input,
+ * and example queries, tailoring the experience based on the user's role.
+ */
+const ChatTab: React.FC = () => {
+    const [configuredApis, setConfiguredApis] = useState<ApiDocument[]>([]);
     const [loadingApis, setLoadingApis] = useState(true);
+    
+    const { addNotification } = useNotifications();
+    const { user } = useAuth();
 
+    // The useChat hook manages the state and logic of the conversation.
     const {
         chatMessages,
         currentMessage,
@@ -20,24 +31,36 @@ const ChatTab = ({ addNotification }) => {
         handleSendMessage,
         clearChat,
         handleExampleQuery
-    } = useChat(addNotification);
+    } = useChat();
 
+    // Determine if the current user has an IT role.
+    const isItUser = useMemo(() =>
+        user?.authorities?.includes('ROLE_IT') ?? false,
+        [user]
+    );
+
+    // Effect to load the list of configured data sources on component mount.
     useEffect(() => {
-        loadApis();
-    }, []);
+        const loadApis = async () => {
+            try {
+                setLoadingApis(true);
+                const data = await apiService.getAllApisSimple();
+                setConfiguredApis(data);
+            } catch (error) {
+                console.error('Error loading APIs:', error);
+                addNotification('Error loading configured data sources', 'error');
+            } finally {
+                setLoadingApis(false);
+            }
+        };
 
-    const loadApis = async () => {
-        try {
-            setLoadingApis(true);
-            const data = await apiService.getAllApisSimple();
-            setConfiguredApis(data);
-        } catch (error) {
-            console.error('Error loading APIs:', error);
-            addNotification('Error loading configured APIs', 'error');
-        } finally {
-            setLoadingApis(false);
-        }
-    };
+        loadApis();
+    }, [addNotification]);
+
+    const formattedChatMessages = useMemo(() => chatMessages.map(msg => ({
+        ...msg,
+        id: String(msg.id), // Convert number to string
+    })), [chatMessages]);
 
     return (
         <div className="h-full flex gap-4">
@@ -47,10 +70,10 @@ const ChatTab = ({ addNotification }) => {
                         <div>
                             <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                                 <Bot className="w-5 h-5 mr-2 text-blue-600" />
-                                Chat with your APIs
+                                {isItUser ? "Chat with your APIs" : "Ask about your data"}
                             </h3>
                             <p className="text-sm text-gray-600">
-                                Ask anything about your configured APIs ({configuredApis.length} available)
+                                {isItUser ? `Ask anything about your configured APIs (${configuredApis.length} available)` : "Ask any question about the available data sources"}
                             </p>
                         </div>
                         {chatMessages.length > 0 && (
@@ -66,7 +89,8 @@ const ChatTab = ({ addNotification }) => {
                 </div>
 
                 <ChatMessages
-                    chatMessages={chatMessages}
+                    chatMessages={formattedChatMessages} // Use the correctly typed messages
+                    isItUser={isItUser}
                     configuredApis={configuredApis}
                     isLoading={isLoading}
                 />
@@ -79,6 +103,7 @@ const ChatTab = ({ addNotification }) => {
                     isLoading={isLoading}
                     includeReasoning={includeReasoning}
                     onReasoningChange={setIncludeReasoning}
+                    isItUser={isItUser}
                 />
             </div>
 
@@ -86,6 +111,7 @@ const ChatTab = ({ addNotification }) => {
                 <ExampleQueries
                     configuredApis={configuredApis}
                     onExampleClick={handleExampleQuery}
+                    isItUser={isItUser}
                 />
             </div>
         </div>
