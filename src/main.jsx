@@ -6,11 +6,9 @@ import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
     <AuthProvider>
       <NotificationProvider>
         <AlesquiIntelligenceApp />
       </NotificationProvider>
     </AuthProvider>
-  </StrictMode>,
 )

@@ -1,16 +1,49 @@
 import React, { useRef } from 'react';
 import { Upload, CheckCircle, Zap } from 'lucide-react';
+import { ApiFormState } from '../../types'; 
 
-const PostmanStep = ({ apiForm, updateForm, onUpload, onSkip, isLoading }) => {
-    const postmanFileRef = useRef(null);
+/**
+ * Defines the properties required by the PostmanStep component.
+ */
+interface PostmanStepProps {
+    /** The current state of the API form, managed by a parent component or hook. */
+    apiForm: ApiFormState;
+    /** A callback function to update the parent's form state with partial changes. */
+    updateForm: (update: Partial<ApiFormState>) => void;
+    /** A callback function to trigger the Postman file upload and proceed. */
+    onUpload: () => void;
+    /** A callback function to skip this optional step and proceed. */
+    onSkip: () => void;
+    /** A boolean flag to indicate if an upload process is currently active. */
+    isLoading: boolean;
+}
 
-    const handleFileChange = (e) => {
-        updateForm({ postmanFile: e.target.files[0] });
+/**
+ * A React functional component for Step 2 of the API configuration process.
+ * This step is optional and is used to upload a Postman collection file (JSON).
+ */
+const PostmanStep: React.FC<PostmanStepProps> = ({ apiForm, updateForm, onUpload, onSkip, isLoading }) => {
+    // A ref to the file input element.
+    const postmanFileRef = useRef<HTMLInputElement>(null);
+
+    /**
+     * Handles the change event for the file input.
+     * Extracts the first selected file and updates the form state.
+     * @param e The React change event from the input element.
+     */
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files.length > 0) {
+            updateForm({ postmanFile: e.target.files[0] });
+        }
     };
+
+    // Determine if the upload button should be disabled for better readability.
+    // It is enabled only when a Postman file has been selected.
+    const isUploadDisabled = isLoading || !apiForm.postmanFile;
 
     return (
         <div className="space-y-4">
-            {/* Success message for Swagger upload */}
+            {/* Success banner confirming the completion of the previous step */}
             <div className="bg-green-50 border border-green-200 rounded-md p-4 mb-4">
                 <div className="flex">
                     <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
@@ -21,9 +54,10 @@ const PostmanStep = ({ apiForm, updateForm, onUpload, onSkip, isLoading }) => {
                 </div>
             </div>
 
+            {/* Postman Collection File Input */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Postman Collection File (JSON) *
+                    Postman Collection File (JSON)
                 </label>
                 <input
                     ref={postmanFileRef}
@@ -31,31 +65,33 @@ const PostmanStep = ({ apiForm, updateForm, onUpload, onSkip, isLoading }) => {
                     accept=".json"
                     onChange={handleFileChange}
                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                    required
                 />
                 <p className="mt-2 text-sm text-gray-500">
-                    Export your Postman collection as JSON format
+                    Export your Postman collection as JSON format.
                 </p>
             </div>
 
+            {/* Primary Action: Upload Postman Collection */}
             <button
                 onClick={onUpload}
-                disabled={isLoading || !apiForm.postmanFile}
+                disabled={isUploadDisabled}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
             >
                 <Upload className="w-4 h-4 mr-2" />
                 {isLoading ? 'Uploading...' : 'Upload Postman & Continue'}
             </button>
 
+            {/* Separator to indicate the optional nature of this step */}
             <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
                     <div className="w-full border-t border-gray-300" />
                 </div>
                 <div className="relative flex justify-center">
-                    <span className="bg-white px-2 text-sm text-gray-500">Opcional</span>
+                    <span className="bg-white px-2 text-sm text-gray-500">Optional</span>
                 </div>
             </div>
 
+            {/* Secondary Action: Skip this step */}
             <button
                 onClick={onSkip}
                 disabled={isLoading}

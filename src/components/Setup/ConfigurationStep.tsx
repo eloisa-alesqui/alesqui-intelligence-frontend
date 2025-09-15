@@ -1,8 +1,23 @@
-import React from 'react';
-import { Save, Lock, Timer, RefreshCw, Zap, Settings } from 'lucide-react';
+import React, { ElementType } from 'react';
+import { Save, Lock, Timer, Zap, Settings } from 'lucide-react';
+import { ApiConfig } from '../../types'; // Import the main config type
 
-// REUSABLE COMPONENT for standard text fields
-const InputField = ({ name, label, value, type = 'text', placeholder, helpText, onChange }) => (
+/** Props for the generic InputField component. */
+interface InputFieldProps {
+    name: string;
+    label: string;
+    value?: string | number;
+    type?: string;
+    placeholder?: string;
+    helpText?: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+}
+
+/**
+ * A reusable, styled text input field for forms.
+ * Supports various types like 'text', 'password', etc.
+ */
+const InputField: React.FC<InputFieldProps> = ({ name, label, value, type = 'text', placeholder, helpText, onChange }) => (
     <div>
         <label htmlFor={name} className="block text-sm font-medium text-gray-700">{label}</label>
         <input
@@ -18,8 +33,24 @@ const InputField = ({ name, label, value, type = 'text', placeholder, helpText, 
     </div>
 );
 
-// REUSABLE COMPONENT for slider fields
-const SliderInputField = ({ label, name, value, min, max, step = 1, unit, helpText, onChange }) => (
+/** Props for the generic SliderInputField component. */
+interface SliderInputFieldProps {
+    label: string;
+    name: string;
+    value?: number;
+    min: number;
+    max: number;
+    step?: number;
+    unit: string;
+    helpText?: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}
+
+/**
+ * A reusable, styled range slider input for forms.
+ * Displays the current value alongside the slider for better UX.
+ */
+const SliderInputField: React.FC<SliderInputFieldProps> = ({ label, name, value, min, max, step = 1, unit, helpText, onChange }) => (
     <div>
         <label htmlFor={name} className="flex justify-between text-sm font-medium text-gray-700">
             <span>{label}</span>
@@ -40,8 +71,18 @@ const SliderInputField = ({ label, name, value, min, max, step = 1, unit, helpTe
     </div>
 );
 
-// REUSABLE COMPONENT for grouping sections
-const Section = ({ title, icon: Icon, children }) => (
+/** Props for the generic Section component. */
+interface SectionProps {
+    title: string;
+    icon: ElementType; // Expects a component (like a lucide-react icon)
+    children: React.ReactNode;
+}
+
+/**
+ * A reusable container component that wraps content in a styled card
+ * with a title and an icon, creating visually distinct sections in a form.
+ */
+const Section: React.FC<SectionProps> = ({ title, icon: Icon, children }) => (
     <div className="border border-gray-200/80 bg-white rounded-lg shadow-sm">
         <div className="px-6 py-4 border-b border-gray-200/80">
             <div className="flex items-center space-x-3">
@@ -56,27 +97,64 @@ const Section = ({ title, icon: Icon, children }) => (
 );
 
 
-const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) => {
+// --- Main ConfigurationStep Component ---
 
+/**
+ * Defines the properties required by the ConfigurationStep component.
+ */
+interface ConfigurationStepProps {
+    /** The configuration state object, managed by a parent hook. */
+    config: ApiConfig | null;
+    /** A callback to update the configuration state. It handles nested properties via dot notation in the 'name' field. */
+    setConfig: (name: string, value: string | number | boolean) => void;
+    /** A callback to trigger the final save action for the configuration. */
+    onSave: () => void;
+    /** A boolean flag to indicate if the save process is currently active. */
+    isLoading: boolean;
+    /** The name of the API being configured, used for display purposes in the UI. */
+    apiName: string;
+}
+
+/**
+ * The main component for Step 4 of the API setup. It renders a form with all
+ * the necessary fields to configure the API's runtime behavior.
+ */
+const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ config, setConfig, onSave, isLoading, apiName }) => {
+
+    // Render nothing if the configuration object is not yet available.
+    // This acts as a guard against rendering with an incomplete or null initial state.
     if (!config || !config.auth) {
-        return null; 
+        return null;
     }
-    
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        const finalValue = type === 'checkbox' ? checked : (type === 'number' || type === 'range' ? parseInt(value, 10) : value);
+
+    /**
+     * A generic change handler for all form inputs in this component.
+     * It determines the correct value based on input type (e.g., checkbox, range)
+     * and calls the `setConfig` callback with the input's name and final value.
+     * @param e The React change event from an input or select element.
+     */
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        const { name, value, type } = e.target;
+        
+        const isCheckbox = type === 'checkbox';
+        const finalValue = isCheckbox
+            ? (e.target as HTMLInputElement).checked
+            : (type === 'number' || type === 'range' ? parseInt(value, 10) : value);
+
         setConfig(name, finalValue);
     };
 
     return (
         <div className="space-y-8">
+            {/* Introductory banner for the final step */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <h4 className="text-lg font-medium text-blue-800">Final Step: Configure API Execution</h4>
                 <p className="mt-1 text-sm text-blue-700">
-                    You are configuring the runtime behavior for the <span className="font-semibold">{apiName}</span> API. These settings determine how Alesqui Intelligence will interact with it.
+                    You are configuring the runtime behavior for the <span className="font-semibold">{apiName}</span> API. These settings determine how the system will interact with it.
                 </p>
             </div>
 
+            {/* General Settings Section */}
             <Section title="General Configuration" icon={Settings}>
                 <InputField
                     name="baseUrl"
@@ -88,6 +166,7 @@ const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) =>
                 />
             </Section>
 
+            {/* Network Settings Section */}
             <Section title="Network Configuration" icon={Timer}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                     <SliderInputField
@@ -113,14 +192,16 @@ const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) =>
                 </div>
             </Section>
             
+            {/* Authentication Settings Section */}
             <Section title="Authentication" icon={Lock}>
+                {/* Dropdown to select authentication type */}
                 <div className="relative">
                     <label htmlFor="auth.authType" className="block text-sm font-medium text-gray-700">Authentication Type</label>
-                    <select 
+                    <select
                         id="auth.authType"
-                        name="auth.authType" 
-                        value={config.auth.authType} 
-                        onChange={handleChange} 
+                        name="auth.authType"
+                        value={config.auth.authType}
+                        onChange={handleChange}
                         className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
                     >
                         <option value="none">No Authentication</option>
@@ -134,6 +215,7 @@ const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) =>
                     </div>
                 </div>
 
+                {/* Container for authentication fields that are conditionally rendered based on the selected type */}
                 {config.auth.authType !== 'none' && (
                     <div className="mt-6 p-5 bg-slate-50 rounded-md space-y-4 border border-slate-200">
                         {config.auth.authType === 'api_key' && (
@@ -142,11 +224,11 @@ const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) =>
                                 <InputField name="auth.apiKey" label="API Key Value" value={config.auth.apiKey} onChange={handleChange} type="password" placeholder="Enter your secret key" />
                                 <div className="relative">
                                     <label htmlFor="auth.addApiKeyTo" className="block text-sm font-medium">Add Key To</label>
-                                    <select 
+                                    <select
                                         id="auth.addApiKeyTo"
-                                        name="auth.addApiKeyTo" 
-                                        value={config.auth.addApiKeyTo} 
-                                        onChange={handleChange} 
+                                        name="auth.addApiKeyTo"
+                                        value={config.auth.addApiKeyTo}
+                                        onChange={handleChange}
                                         className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 appearance-none"
                                     >
                                         <option value="header">Header</option>
@@ -182,6 +264,7 @@ const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) =>
                 )}
             </Section>
 
+            {/* Advanced Settings Section */}
             <Section title="Advanced Settings" icon={Zap}>
                 <div className="flex items-start">
                     <div className="flex items-center h-5">
@@ -204,6 +287,7 @@ const ConfigurationStep = ({ config, setConfig, onSave, isLoading, apiName }) =>
                 />
             </Section>
 
+            {/* Final Save Button to submit the configuration */}
             <div className="pt-5">
                 <button
                     onClick={onSave}

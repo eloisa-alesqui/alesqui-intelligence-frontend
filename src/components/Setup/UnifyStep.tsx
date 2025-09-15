@@ -1,16 +1,34 @@
 import React from 'react';
 import { Zap, CheckCircle } from 'lucide-react';
+import { ApiFormState } from '../../types';
 
-const UnifyStep = ({ apiForm, onUnify, isLoading }) => {
-    // Esta variable determinará si se muestra la sección de Postman.
-    // Asume que tu hook `useApiForm` provee este booleano.
+/**
+ * Defines the properties required by the UnifyStep component.
+ */
+interface UnifyStepProps {
+    /** The current state of the API form, containing details and upload statuses. */
+    apiForm: ApiFormState;
+    /** A callback function to initiate the unification process on the backend. */
+    onUnify: () => void;
+    /** A boolean flag to indicate if the unification process is currently active. */
+    isLoading: boolean;
+}
+
+/**
+ * A React functional component for Step 3 of the API configuration process.
+ * This step acts as a confirmation screen, summarizing the uploaded API collections
+ * and explaining the benefits of the upcoming unification process.
+ */
+const UnifyStep: React.FC<UnifyStepProps> = ({ apiForm, onUnify, isLoading }) => {
+    // A convenient boolean to check if a Postman collection was provided in the previous step.
+    // This is used to conditionally render UI elements and text.
     const postmanWasUploaded = apiForm.postmanUploaded;
 
     return (
         <div className="space-y-4">
-            {/* Status of previous steps */}
+            {/* Section confirming the status of the previously uploaded files */}
             <div className="space-y-3">
-                {/* -- Bloque de Swagger (siempre visible) -- */}
+                {/* Swagger Upload Confirmation (always shown) */}
                 <div className="bg-green-50 border border-green-200 rounded-md p-4">
                     <div className="flex">
                         <CheckCircle className="w-5 h-5 text-green-400 mr-2" />
@@ -21,7 +39,7 @@ const UnifyStep = ({ apiForm, onUnify, isLoading }) => {
                     </div>
                 </div>
 
-                {/* -- MODIFICACIÓN: Bloque de Postman (solo si se subió el archivo) -- */}
+                {/* Postman Upload Confirmation (conditionally shown) */}
                 {postmanWasUploaded && (
                     <div className="bg-green-50 border border-green-200 rounded-md p-4">
                         <div className="flex">
@@ -35,7 +53,7 @@ const UnifyStep = ({ apiForm, onUnify, isLoading }) => {
                 )}
             </div>
 
-            {/* -- MODIFICACIÓN: Información de Unificación (contenido dinámico) -- */}
+            {/* Informational box explaining the unification process and its benefits */}
             <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                 <h4 className="text-sm font-medium text-blue-800 mb-2">Ready to Unify</h4>
                 <p className="text-sm text-blue-700">
@@ -51,7 +69,7 @@ const UnifyStep = ({ apiForm, onUnify, isLoading }) => {
                 </ul>
             </div>
 
-            {/* API Summary (sin cambios) */}
+            {/* A summary of the API metadata provided in the first step */}
             <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
                 <h4 className="text-sm font-medium text-gray-800 mb-2">API Summary</h4>
                 <div className="space-y-1 text-sm text-gray-600">
@@ -63,7 +81,7 @@ const UnifyStep = ({ apiForm, onUnify, isLoading }) => {
                 </div>
             </div>
 
-            {/* Botón de Unificar (sin cambios) */}
+            {/* Primary Action: Button to trigger the unification process */}
             <button
                 onClick={onUnify}
                 disabled={isLoading}
@@ -73,7 +91,7 @@ const UnifyStep = ({ apiForm, onUnify, isLoading }) => {
                 {isLoading ? 'Unifying...' : 'Unify API & Complete Setup'}
             </button>
 
-            {/* Indicador de carga (sin cambios) */}
+            {/* Loading indicator shown during the unification process */}
             {isLoading && (
                 <div className="text-center text-sm text-gray-500">
                     <div className="inline-flex items-center">
