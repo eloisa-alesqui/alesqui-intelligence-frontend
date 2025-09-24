@@ -1,5 +1,11 @@
 import { useState, useCallback } from 'react';
-import { chatService, ChatSettings, SendMessageResponse } from '../services/chatService';
+import {
+    chatService,
+    ChatSettings,
+    SendMessageResponse,
+    ConversationSummary,
+    ConversationDetail
+} from '../services/chatService';
 import { useNotifications, NotificationType } from '../context/NotificationContext';
 import { ChartDataType } from '../components/Chat/ChatMessageChart';
 
@@ -36,6 +42,8 @@ export const useChat = () => {
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [includeReasoning, setIncludeReasoning] = useState(true);
+    const [conversationHistory, setConversationHistory] = useState<ConversationSummary[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     /**
      * A private helper function to handle the common logic of sending a message.
@@ -93,6 +101,7 @@ export const useChat = () => {
             setChatMessages(prev => [...prev, errorBotMessage]);
         } finally {
             setIsLoading(false);
+            fetchHistory();
         }
     }, [addNotification]);
 
@@ -116,12 +125,12 @@ export const useChat = () => {
     }, [currentMessage, includeReasoning, performSendMessage]);
 
     /**
-     * Clears the current chat history and resets the conversation state.
+     * Clears the current chat history to start a new conversation.
      */
     const clearChat = useCallback(() => {
         setChatMessages([]);
         chatService.clearConversation();
-        addNotification('Chat has been cleared', 'info');
+        addNotification('New chat started', 'info');
     }, [addNotification]);
 
     /**
@@ -142,6 +151,62 @@ export const useChat = () => {
         };
     }, [chatMessages.length]);
 
+    /**
+     * Fetches the conversation history from the backend and updates the state.
+     */
+    const fetchHistory = useCallback(async () => {
+        setIsLoadingHistory(true);
+        try {
+            const history = await chatService.getConversationHistory();
+            setConversationHistory(history);
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            addNotification(`Failed to load conversation history: ${errorMessage}`, 'error');
+        } finally {
+            setIsLoadingHistory(false);
+        }
+    }, [addNotification]);
+
+    /**
+     * Loads a selected conversation's full message history into the main chat view.
+     */
+    const loadConversation = useCallback(async (conversationId: string) => {
+        setIsLoading(true);
+        setChatMessages([]); 
+        try {
+            const details = await chatService.getConversationDetails(conversationId);
+            
+            const loadedMessages: ChatMessage[] = details.map((detail, index) => {
+                const userMessage: ChatMessage = {
+                    id: new Date(detail.timestamp).getTime() + index,
+                    type: 'user',
+                    content: detail.userPrompt,
+                    timestamp: new Date(detail.timestamp)
+                };
+                const botMessage: ChatMessage = {
+                    id: new Date(detail.timestamp).getTime() + index + 0.5,
+                    type: 'bot',
+                    content: detail.responseText,
+                    timestamp: new Date(detail.timestamp),
+                    isError: detail.isError,
+                    chart: detail.responseChart || null,
+                    reasoning: detail.stepByStepReasoning
+                };
+                return [userMessage, botMessage];
+            }).flat();
+
+            setChatMessages(loadedMessages);
+            chatService.setConversationId(conversationId);
+            addNotification(`Conversation ${conversationId.slice(0, 10)}... loaded`, 'success');
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            addNotification(`Failed to load conversation: ${errorMessage}`, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    }, [addNotification]);
+
     // Return all the state and handlers that the UI components will need.
     return {
         chatMessages,
@@ -151,8 +216,12 @@ export const useChat = () => {
         setIncludeReasoning,
         setCurrentMessage,
         handleSendMessage,
-        clearChat,
         handleExampleQuery,
+        conversationHistory,
+        isLoadingHistory,
+        fetchHistory,
+        loadConversation,
+        clearChat, 
         getConversationInfo
     };
 };

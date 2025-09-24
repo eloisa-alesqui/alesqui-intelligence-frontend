@@ -1,4 +1,5 @@
 import apiClient from '../api/axiosConfig';
+import { ChartDataType } from '../components/Chat/ChatMessageChart';
 
 // ================================================================================================
 // TYPE DEFINITIONS
@@ -60,6 +61,27 @@ export interface SendMessageResponse {
     error: boolean;
 }
 
+/**
+ * Defines the structure for a conversation summary, used for the history panel.
+ */
+export interface ConversationSummary {
+    conversationId: string;
+    title: string;
+    lastUpdated: Date; 
+}
+
+/**
+ * Defines the structure for a single turn in a detailed conversation history.
+ */
+export interface ConversationDetail {
+    userPrompt: string;
+    responseText: string;
+    responseChart?: ChartDataType;
+    stepByStepReasoning?: string;
+    timestamp: Date; // ISO date string from backend
+    isError: boolean;
+}
+
 // ================================================================================================
 // CHAT SERVICE CLASS
 // ================================================================================================
@@ -73,14 +95,6 @@ export interface SendMessageResponse {
 class ChatService {
     private baseUrl = '/api/chat';
     private conversationId: string | null = null;
-
-    /**
-     * Generates a new unique identifier for a conversation session.
-     * @returns A unique string for the conversation ID.
-     */
-    private generateConversationId(): string {
-        return `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    }
 
     /**
      * Sends a message to the backend chat service with the specified settings.
@@ -142,6 +156,70 @@ class ChatService {
                 error: true
             };
         }
+    }
+
+    /**
+     * Fetches the list of conversation summaries for the authenticated user.
+     */
+    async getConversationHistory(): Promise<ConversationSummary[]> {
+        try {
+            // The backend sends a DTO where lastUpdated is a string
+            interface ConversationSummaryFromAPI {
+                conversationId: string;
+                title: string;
+                lastUpdated: number;
+            }
+
+            const response = await apiClient.get<ConversationSummaryFromAPI[]>(`/api/conversations`);
+            
+            return response.data.map(conv => ({
+                ...conv,
+                lastUpdated: new Date(conv.lastUpdated * 1000),
+            }));
+
+        } catch (error: any) {
+            console.error('Error fetching conversation history:', error);
+            throw new Error(error.response?.data?.message || 'Failed to fetch history');
+        }
+    }
+
+    /**
+     * Fetches the full message history for a specific conversation.
+     * @param conversationId The ID of the conversation to retrieve.
+     * @returns A promise that resolves to an array of detailed conversation messages.
+     */
+    async getConversationDetails(conversationId: string): Promise<ConversationDetail[]> {
+        try {
+            // Define an interface for the raw data from the API, where timestamp is a number
+            interface ConversationDetailFromAPI {
+                userPrompt: string;
+                responseText: string;
+                responseChart?: ChartDataType;
+                stepByStepReasoning?: string;
+                timestamp: number; // Expecting a Unix timestamp (seconds)
+                isError: boolean;
+            }
+
+            const response = await apiClient.get<ConversationDetailFromAPI[]>(`/api/conversations/${conversationId}`);
+            
+            // Map over the results to convert the numeric timestamp into a Date object
+            return response.data.map(detail => ({
+                ...detail,
+                timestamp: new Date(detail.timestamp * 1000),
+            }));
+
+        } catch (error: any) {
+            console.error(`Error fetching details for conversation ${conversationId}:`, error);
+            throw new Error(error.response?.data?.message || `Failed to fetch details for ${conversationId}`);
+        }
+    }
+
+    /**
+     * Generates a new unique identifier for a conversation session.
+     * @returns A unique string for the conversation ID.
+     */
+    generateConversationId(): string {
+        return `conv_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     }
 
     /**

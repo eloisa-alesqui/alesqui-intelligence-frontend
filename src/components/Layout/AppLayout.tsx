@@ -23,7 +23,7 @@ const AppLayout: React.FC = () => {
 
             <Notifications />
 
-            <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 h-[calc(100vh-5rem)]">
+            <main className="h-[calc(100vh-4.1rem)]">
                 {/* The <Outlet /> component from react-router-dom is a placeholder.
                   It renders the specific child route component that matches the current URL.
                   (e.g., <SetupTab />, <ApiList />, or <ChatTab />)
