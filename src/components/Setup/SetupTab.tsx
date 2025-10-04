@@ -47,7 +47,7 @@ const SetupTab: React.FC = () => {
         updateApiConfig,
         handleSaveConfiguration
     } = useApiForm({ onApiConfigured: handleApiConfigured });
-    
+
     /**
      * Fetches the list of configured APIs from the server.
      * Memoized with useCallback to prevent re-creation on every render.
@@ -72,46 +72,50 @@ const SetupTab: React.FC = () => {
 
     /**
      * Handles the deletion of an API from the sidebar.
-     * This logic will eventually move to the ApiList component itself.
+     * It calls the apiService to delete the document and then reloads the list.
      */
-    const handleDeleteApi = async (apiId: string) => {
+    const handleDeleteApi = async (apiId: string, apiName: string) => {
+        // We use the apiName in the confirmation message, but only apiId for the call.
         try {
-            // Assuming apiService will have a delete method.
-            // await apiService.deleteApi(apiId);
-            addNotification('API deleted successfully', 'success');
-            // Reload the list to reflect the change.
+            // Call the service to delete the API from the backend.
+            await apiService.deleteApi(apiId);
+            
+            // Show a success notification.
+            addNotification(`API "${apiName}" deleted successfully`, 'success');
+            
+            // Reload the list of APIs to reflect the change in the UI.
             loadApis();
+
         } catch (error) {
-            console.error('Error deleting API:', error);
-            addNotification('Error deleting API', 'error');
+            console.error(`Error deleting API ${apiName}:`, error);
+            // Show an error notification if something goes wrong.
+            addNotification(`Error deleting API "${apiName}"`, 'error');
         }
     };
 
     return (
-        <div className="space-y-8">
-            {/* Hero Section */}
-            <div className="text-center">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                    Configure your APIs in 3 minutes
+                    Configure your APIs in 5 minutes
                 </h2>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                    Upload your Postman and Swagger collections, unify the information and you'll have a ChatGPT for your internal APIs
+                    Upload your Swagger and Postman collections, unify the information, and get a powerful conversational AI for your internal APIs
                 </p>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-8">
-                {/* Configuration Form Wizard */}
-                <div className="lg:col-span-2">
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+                <div className="w-full lg:flex-[2] xl:flex-[3]">
                     <div className="bg-white rounded-lg shadow p-6">
+
                         <h3 className="text-xl font-semibold text-gray-900 mb-6">
                             {currentStep === 1 && 'Step 1: API Information & Swagger'}
                             {currentStep === 2 && 'Step 2: Postman Collection (Optional)'}
                             {currentStep === 3 && 'Step 3: Unify API'}
                             {currentStep === 4 && 'Step 4: API Execution Configuration'}
                         </h3>
-
                         <StepProgress currentStep={currentStep} apiForm={apiForm} steps={4} />
-
                         {currentStep === 1 && (
                             <SwaggerStep
                                 apiForm={apiForm}
@@ -120,7 +124,6 @@ const SetupTab: React.FC = () => {
                                 isLoading={isLoading}
                             />
                         )}
-
                         {currentStep === 2 && (
                             <PostmanStep
                                 apiForm={apiForm}
@@ -130,7 +133,6 @@ const SetupTab: React.FC = () => {
                                 isLoading={isLoading}
                             />
                         )}
-
                         {currentStep === 3 && (
                             <UnifyStep
                                 apiForm={apiForm}
@@ -138,7 +140,6 @@ const SetupTab: React.FC = () => {
                                 isLoading={isLoading}
                             />
                         )}
-
                         {currentStep === 4 && (
                             <ConfigurationStep
                                 config={apiConfig}
@@ -148,26 +149,16 @@ const SetupTab: React.FC = () => {
                                 apiName={apiForm.name}
                             />
                         )}
-
-                        {currentStep > 1 && (
-                            <div className="mt-6 pt-4 border-t">
-                                <button
-                                    onClick={resetForm}
-                                    className="text-sm text-gray-500 hover:text-gray-700"
-                                >
-                                    Start configuring a new API
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>
 
-                {/* Configured APIs Sidebar */}
-                <ConfiguredApisSidebar
-                    configuredApis={configuredApis}
-                    onDeleteApi={handleDeleteApi}
-                    loading={loadingApis}
-                />
+                <div className="w-full lg:flex-1 sticky top-8">
+                    <ConfiguredApisSidebar
+                        configuredApis={configuredApis}
+                        onDeleteApi={handleDeleteApi}
+                        loading={loadingApis}
+                    />
+                </div>
             </div>
         </div>
     );

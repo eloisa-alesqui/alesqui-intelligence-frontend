@@ -17,12 +17,12 @@ export interface ChatMessage {
     content: string;
     timestamp: Date;
     isError?: boolean;
-    chart?: ChartDataType | null; 
+    chart?: ChartDataType | null;
     reasoning?: string;
     conversationId?: string;
     processingTimeMs?: number;
     processingType?: string;
-    metadata?: Record<string, any>; 
+    metadata?: Record<string, any>;
 
     // Include the full raw response from the service for backward compatibility or deep debugging
     responseDetails?: SendMessageResponse;
@@ -172,10 +172,10 @@ export const useChat = () => {
      */
     const loadConversation = useCallback(async (conversationId: string) => {
         setIsLoading(true);
-        setChatMessages([]); 
+        setChatMessages([]);
         try {
             const details = await chatService.getConversationDetails(conversationId);
-            
+
             const loadedMessages: ChatMessage[] = details.map((detail, index) => {
                 const userMessage: ChatMessage = {
                     id: new Date(detail.timestamp).getTime() + index,
@@ -207,6 +207,30 @@ export const useChat = () => {
         }
     }, [addNotification]);
 
+    /**
+     * Handles the deletion of a conversation.
+     * @param conversationId The ID of the conversation to delete.
+     */
+    const handleDeleteConversation = useCallback(async (conversationId: string) => {
+        try {
+            // Call the service to delete the conversation in the backend.
+            await chatService.deleteConversation(conversationId);
+            addNotification('Conversation deleted successfully', 'success');
+
+            // If the deleted conversation was the active one, clear the chat.
+            if (chatService.getConversationId() === conversationId) {
+                clearChat();
+            }
+
+            // Refetch the history to update the list in the UI.
+            fetchHistory();
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            addNotification(`Error deleting conversation: ${errorMessage}`, 'error');
+        }
+    }, [addNotification, fetchHistory, clearChat]);
+
     // Return all the state and handlers that the UI components will need.
     return {
         chatMessages,
@@ -221,7 +245,8 @@ export const useChat = () => {
         isLoadingHistory,
         fetchHistory,
         loadConversation,
-        clearChat, 
-        getConversationInfo
+        clearChat,
+        getConversationInfo,
+        handleDeleteConversation
     };
 };

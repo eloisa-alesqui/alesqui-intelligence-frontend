@@ -131,6 +131,22 @@ class ApiService {
         });
         return response.data;
     }
+
+    /**
+     * Deletes a single API document by its unique identifier.
+     * This will also trigger the deletion of related Swagger and Postman documents on the backend.
+     * @param id The unique ID of the document to delete.
+     * @returns A promise that resolves when the deletion is successful.
+     */
+    async deleteApi(id: string): Promise<void> {
+        try {
+            await apiClient.delete(`${this.baseUrl}/${id}`);
+        } catch (error: any) {
+            // Log the error and re-throw it to be handled by the calling component
+            console.error(`Failed to delete API with id ${id}:`, error);
+            throw error;
+        }
+    }
 }
 
 /**

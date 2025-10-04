@@ -215,6 +215,20 @@ class ChatService {
     }
 
     /**
+     * Sends a request to delete a full conversation.
+     * @param conversationId The ID of the conversation to delete.
+     */
+    async deleteConversation(conversationId: string): Promise<void> {
+        try {
+            await apiClient.delete(`/api/conversations/${conversationId}`);
+        } catch (error: any) {
+            console.error(`Error deleting conversation ${conversationId}:`, error);
+            // Rethrow the error so the calling hook can handle it and notify the user.
+            throw new Error(error.response?.data?.message || `Failed to delete conversation ${conversationId}`);
+        }
+    }
+
+    /**
      * Generates a new unique identifier for a conversation session.
      * @returns A unique string for the conversation ID.
      */

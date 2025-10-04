@@ -43,6 +43,7 @@ const ChatTab: React.FC = () => {
         handleExampleQuery,
         fetchHistory,
         loadConversation,
+        handleDeleteConversation,
     } = useChat();
 
     /**
@@ -107,6 +108,7 @@ const ChatTab: React.FC = () => {
                     isLoading={isLoadingHistory}
                     onNewChat={clearChat}
                     onLoadConversation={loadConversation}
+                    onDeleteConversation={handleDeleteConversation}
                     currentConversationId={currentConversationId}
                 />
 
