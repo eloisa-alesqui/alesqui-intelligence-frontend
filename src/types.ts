@@ -12,6 +12,26 @@ export interface ApiFormState {
 }
 
 /**
+ * A generic interface for a document representing a unified API.
+ */
+export interface ApiDocument {
+    _id?: string;
+    id?: string;
+    name: string;
+    description?: string;
+    version?: string;
+    team?: string;
+    baseUrl?: string;
+    endpoints?: any[];
+    servers?: any[];
+    createdAt?: string;
+    updatedAt?: string;
+    active?: boolean;
+    apiConfiguration: ApiConfig;
+    [key: string]: any; // Allows for any additional properties
+}
+
+/**
  * Represents the different authentication types and their required fields.
  * This is a discriminated union based on the 'authType' property.
  */
@@ -21,12 +41,15 @@ type AuthConfig =
     | { authType: 'bearer'; bearerToken?: string }
     | { authType: 'basic'; basicAuthUsername?: string; basicAuthPassword?: string }
     | { 
-        authType: 'oauth2_client_credentials'; 
-        oauth2ClientCredentials: {
+        authType: 'oauth2';
+        oauth2?: { 
+            grantType: 'client_credentials' | 'password';
+            tokenUrl?: string;
             clientId?: string;
             clientSecret?: string;
-            tokenUrl?: string;
             scopes?: string;
+            username?: string;
+            password?: string;
         }
       };
 

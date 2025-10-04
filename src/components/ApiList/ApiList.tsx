@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { apiService, ApiDocument } from '../../services/apiService';
+import { apiService } from '../../services/apiService';
+import { ApiDocument } from '../../types';
 import { Search, Server, Calendar, Users, Eye, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const ApiList: React.FC = () => {
+    const navigate = useNavigate();
     const [apis, setApis] = useState<ApiDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ const ApiList: React.FC = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <div>
@@ -175,21 +178,12 @@ const ApiList: React.FC = () => {
                                     </div>
                                 </div>
 
-                                {/* Servers */}
-                                {api.servers && api.servers.length > 0 && (
+                                {/* Base URL from Configuration */}
+                                {api.apiConfiguration?.baseUrl && (
                                     <div className="mt-4 pt-4 border-t border-gray-100">
-                                        <div className="text-xs text-gray-500 mb-2">Servers:</div>
-                                        <div className="space-y-1">
-                                            {api.servers.slice(0, 2).map((server, index) => (
-                                                <div key={index} className="text-xs bg-gray-50 px-2 py-1 rounded truncate">
-                                                    {server.url}
-                                                </div>
-                                            ))}
-                                            {api.servers.length > 2 && (
-                                                <div className="text-xs text-gray-500">
-                                                    +{api.servers.length - 2} more
-                                                </div>
-                                            )}
+                                        <div className="text-xs text-gray-500 mb-2">Base URL:</div>
+                                        <div className="text-xs bg-gray-50 px-2 py-1 rounded truncate">
+                                            {api.apiConfiguration.baseUrl}
                                         </div>
                                     </div>
                                 )}
@@ -197,8 +191,12 @@ const ApiList: React.FC = () => {
 
                             {/* Actions */}
                             <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-between">
-                                <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                                    View Details
+                                <button 
+                                    onClick={() => navigate(`/apis/${api.id || api._id}`)}
+                                    className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1"
+                                >
+                                    <Settings size={14} />
+                                    Manage
                                 </button>
                                 <button className="text-green-600 hover:text-green-800 text-sm font-medium">
                                     Chat with API

@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiService, ApiDocument } from '../../services/apiService';
+import { apiService } from '../../services/apiService';
 import { useNotifications } from '../../context/NotificationContext';
 import { useApiForm } from '../../hooks/useApiForm';
+import { ApiDocument } from '../../types';
 
 import StepProgress from './StepProgress';
 import SwaggerStep from './SwaggerStep';
 import PostmanStep from './PostmanStep';
 import UnifyStep from './UnifyStep';
 import ConfigurationStep from './ConfigurationStep';
-import ConfiguredApisSidebar from '../ApiList/ConfiguredApisSidebar';
+import ConfiguredApisSidebar from './ConfiguredApisSidebar';
 
 /**
  * The main component for the "Setup" tab.

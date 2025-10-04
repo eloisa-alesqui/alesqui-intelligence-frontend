@@ -8,6 +8,7 @@ import UnauthorizedPage from './pages/UnauthorizedPage';
 
 import SetupTab from './components/Setup/SetupTab';
 import ApiList from './components/ApiList/ApiList';
+import ManageApiPage from './components/ApiList/ManageApiPage';
 import ChatTab from './components/Chat/ChatTab';
 
 /**
@@ -40,6 +41,7 @@ const AlesquiIntelligenceApp: React.FC = () => {
                     <Route element={<ProtectedRoute roles={['ROLE_IT']} />}>
                         <Route path="/setup" element={<SetupTab />} />
                         <Route path="/apis" element={<ApiList />} />
+                        <Route path="/apis/:apiId" element={<ManageApiPage />} />
                     </Route>
 
                 </Route>

@@ -113,14 +113,28 @@ interface ConfigurationStepProps {
     isLoading: boolean;
     /** The name of the API being configured, used for display purposes in the UI. */
     apiName: string;
+    /** Optional title to display in the header banner. Defaults to the 'Final Step' text. */
+    title?: string;
+    /** Optional description to display in the header banner. Defaults to the original text. */
+    description?: string;
+    /** Optional text for the main save button. Defaults to 'Save Configuration & Finish'. */
+    saveButtonText?: string;
 }
 
 /**
  * The main component for Step 4 of the API setup. It renders a form with all
  * the necessary fields to configure the API's runtime behavior.
  */
-const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ config, setConfig, onSave, isLoading, apiName }) => {
-
+const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ 
+    config, 
+    setConfig, 
+    onSave, 
+    isLoading, 
+    apiName,
+    title = 'Final Step: Configure API Execution',
+    description,
+    saveButtonText = 'Save Configuration & Finish'
+}) => {
     // Render nothing if the configuration object is not yet available.
     // This acts as a guard against rendering with an incomplete or null initial state.
     if (!config || !config.auth) {
@@ -148,9 +162,11 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ config, setConfig
         <div className="space-y-8">
             {/* Introductory banner for the final step */}
             <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="text-lg font-medium text-blue-800">Final Step: Configure API Execution</h4>
+                <h4 className="text-lg font-medium text-blue-800">
+                    {title} 
+                </h4>
                 <p className="mt-1 text-sm text-blue-700">
-                    You are configuring the runtime behavior for the <span className="font-semibold">{apiName}</span> API. These settings determine how the system will interact with it.
+                    {description || `You are configuring the runtime behavior for the ${apiName} API. These settings determine how the system will interact with it.`}
                 </p>
             </div>
 
@@ -208,7 +224,7 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ config, setConfig
                         <option value="api_key">API Key</option>
                         <option value="bearer">Bearer Token</option>
                         <option value="basic">Basic Auth</option>
-                        <option value="oauth2_client_credentials">OAuth 2.0 (Client Credentials)</option>
+                        <option value="oauth2">OAuth 2.0</option>
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 mt-6">
                         <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
@@ -252,13 +268,35 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ config, setConfig
                             </>
                         )}
                         
-                        {config.auth.authType === 'oauth2_client_credentials' && (
-                            <>
-                                <InputField name="auth.oauth2ClientCredentials.clientId" label="Client ID" value={config.auth.oauth2ClientCredentials.clientId} onChange={handleChange} />
-                                <InputField name="auth.oauth2ClientCredentials.clientSecret" label="Client Secret" value={config.auth.oauth2ClientCredentials.clientSecret} onChange={handleChange} type="password" />
-                                <InputField name="auth.oauth2ClientCredentials.tokenUrl" label="Token URL" value={config.auth.oauth2ClientCredentials.tokenUrl} onChange={handleChange} placeholder="https://auth.example.com/oauth/token" />
-                                <InputField name="auth.oauth2ClientCredentials.scopes" label="Scopes (space-separated)" value={config.auth.oauth2ClientCredentials.scopes} onChange={handleChange} helpText="e.g., read:data write:data" />
-                            </>
+                        {config.auth.authType === 'oauth2' && (
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="auth.oauth2.grantType" className="block text-sm font-medium">OAuth 2.0 Grant Type</label>
+                                    <select
+                                        id="auth.oauth2.grantType"
+                                        name="auth.oauth2.grantType"
+                                        value={config.auth.oauth2?.grantType || 'client_credentials'}
+                                        onChange={handleChange}
+                                        className="mt-1 block w-full pl-3 pr-10 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500"
+                                    >
+                                        <option value="client_credentials">Client Credentials</option>
+                                        <option value="password">Password</option>
+                                    </select>
+                                </div>
+
+                                <InputField name="auth.oauth2.tokenUrl" label="Token URL" value={config.auth.oauth2?.tokenUrl} onChange={handleChange} />
+                                <InputField name="auth.oauth2.clientId" label="Client ID" value={config.auth.oauth2?.clientId} onChange={handleChange} />
+                                <InputField name="auth.oauth2.clientSecret" label="Client Secret" value={config.auth.oauth2?.clientSecret} onChange={handleChange} type="password" />
+                                <InputField name="auth.oauth2.scopes" label="Scopes (space-separated)" value={config.auth.oauth2?.scopes} onChange={handleChange} />
+                                
+                                {config.auth.oauth2?.grantType === 'password' && (
+                                    <div className="mt-4 pt-4 border-t border-slate-300 space-y-4">
+                                        <p className="text-sm font-medium text-gray-700">Resource Owner Credentials</p>
+                                        <InputField name="auth.oauth2.username" label="Username" value={config.auth.oauth2?.username} onChange={handleChange} />
+                                        <InputField name="auth.oauth2.password" label="Password" value={config.auth.oauth2?.password} onChange={handleChange} type="password" />
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 )}
@@ -295,7 +333,7 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({ config, setConfig
                     className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <Save className="w-5 h-5 mr-2" />
-                    {isLoading ? 'Saving...' : 'Save Configuration & Finish'}
+                    {isLoading ? 'Saving...' : saveButtonText}
                 </button>
             </div>
         </div>

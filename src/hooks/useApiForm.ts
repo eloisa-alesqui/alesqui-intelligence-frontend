@@ -135,18 +135,22 @@ export const useApiForm = ({ onApiConfigured }: UseApiFormProps) => {
 
     const updateApiConfig = (field: string, value: any) => {
         setApiConfig(prev => {
+            const newState = JSON.parse(JSON.stringify(prev));
+            
             const keys = field.split('.');
-            if (keys.length > 1) {
-                // This is a deep-copy approach to safely update nested state.
-                const newState = JSON.parse(JSON.stringify(prev));
-                let nested = newState;
-                for (let i = 0; i < keys.length - 1; i++) {
-                    nested = nested[keys[i]];
+            let currentLevel = newState;
+    
+            for (let i = 0; i < keys.length - 1; i++) {
+                const key = keys[i];
+                if (currentLevel[key] === undefined || currentLevel[key] === null) {
+                    currentLevel[key] = {};
                 }
-                nested[keys[keys.length - 1]] = value;
-                return newState;
+                currentLevel = currentLevel[key];
             }
-            return { ...prev, [field]: value };
+    
+            currentLevel[keys[keys.length - 1]] = value;
+    
+            return newState;
         });
     };
 

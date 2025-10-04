@@ -1,28 +1,9 @@
 import apiClient from '../api/axiosConfig';
+import { ApiConfig, ApiDocument } from '../types';
 
 // ================================================================================================
 // TYPE DEFINITIONS
 // ================================================================================================
-
-/**
- * A generic interface for a document representing a unified API.
- * It's recommended to use the more specific 'UnifiedApiDocument' where possible.
- */
-export interface ApiDocument {
-    _id?: string;
-    id?: string;
-    name?: string;
-    description?: string;
-    version?: string;
-    team?: string;
-    baseUrl?: string;
-    endpoints?: any[];
-    servers?: any[];
-    createdAt?: string;
-    updatedAt?: string;
-    active?: boolean;
-    [key: string]: any; // Allows for any additional properties
-}
 
 /**
  * Defines the structure for a paginated list response from the API.
@@ -144,6 +125,22 @@ class ApiService {
         } catch (error: any) {
             // Log the error and re-throw it to be handled by the calling component
             console.error(`Failed to delete API with id ${id}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Updates the runtime execution configuration for a specific API document.
+     * @param id The unique ID of the document to update.
+     * @param configuration The new configuration object.
+     * @returns A promise that resolves to the updated API document.
+     */
+    async updateApiConfiguration(id: string, configuration: ApiConfig): Promise<ApiDocument> {
+        try {
+            const response = await apiClient.put<ApiDocument>(`${this.baseUrl}/${id}/configuration`, configuration);
+            return response.data;
+        } catch (error: any) {
+            console.error(`Failed to update configuration for API with id ${id}:`, error);
             throw error;
         }
     }

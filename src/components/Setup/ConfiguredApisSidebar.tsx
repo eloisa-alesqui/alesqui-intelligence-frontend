@@ -1,6 +1,6 @@
 import React, { useState, FC } from 'react';
 import { Trash2, Loader, Database, Search, ArrowRight } from 'lucide-react';
-import { ApiDocument } from '../../services/apiService';
+import { ApiDocument } from '../../types';
 import { Link } from 'react-router-dom';
 
 // ================================================================================================
