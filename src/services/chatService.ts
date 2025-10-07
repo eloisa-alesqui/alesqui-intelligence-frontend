@@ -229,6 +229,43 @@ class ChatService {
     }
 
     /**
+     * Handles the download of a secure file by making an authenticated API call.
+     * @param downloadUrl The relative URL of the file to download (e.g., /api/files/download/...).
+     */
+    async downloadFile(downloadUrl: string): Promise<void> {
+        try {
+            // Hacemos la petición GET a través de apiClient para que incluya el token.
+            // 'responseType: blob' es crucial para que Axios maneje la respuesta como un archivo.
+            const response = await apiClient.get(downloadUrl, {
+                responseType: 'blob',
+            });
+
+            // Extraemos el nombre del archivo de la URL
+            const filename = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
+
+            // Creamos un enlace temporal para iniciar la descarga en el navegador
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+
+            // Limpiamos el enlace temporal
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+        } catch (error: any) {
+            console.error('File download error:', error);
+            const errorMessage = error.response?.data?.message || 'Failed to download file.';
+            // Notifica al usuario del error
+            alert(`Download Error: ${errorMessage}`);
+            // Lanza el error para que el componente que lo llama pueda reaccionar si es necesario
+            throw new Error(errorMessage);
+        }
+    }
+
+    /**
      * Generates a new unique identifier for a conversation session.
      * @returns A unique string for the conversation ID.
      */

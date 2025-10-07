@@ -144,6 +144,22 @@ class ApiService {
             throw error;
         }
     }
+
+    /**
+     * Updates the 'active' status of a single API document.
+     * @param id The unique ID of the document to update.
+     * @param active The new boolean value for the active state.
+     * @returns A promise that resolves to the updated API document.
+     */
+    async updateApiStatus(id: string, active: boolean): Promise<ApiDocument> {
+        try {
+            const response = await apiClient.patch<ApiDocument>(`${this.baseUrl}/${id}/status`, { active });
+            return response.data;
+        } catch (error: any) {
+            console.error(`Failed to update status for API with id ${id}:`, error);
+            throw error;
+        }
+    }
 }
 
 /**

@@ -1,8 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, FC } from 'react';
 import { apiService } from '../../services/apiService';
 import { ApiDocument } from '../../types';
-import { Search, Server, Calendar, Users, Eye, Settings } from 'lucide-react';
+import { Search, Server, Calendar, Users, Globe, Settings, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+const DeleteConfirmationDialog: FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    apiName: string;
+}> = ({ isOpen, onClose, onConfirm, apiName }) => {
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+                <h3 className="text-lg font-bold text-gray-800">Delete API</h3>
+                <p className="text-sm text-gray-600 my-4">
+                    Are you sure you want to delete the API <span className="font-semibold">"{apiName}"</span>? This action cannot be undone.
+                </p>
+                <div className="flex justify-end space-x-3">
+                    <button onClick={onClose} className="px-4 py-2 rounded-md text-sm font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300">
+                        Cancel
+                    </button>
+                    <button onClick={onConfirm} className="px-4 py-2 rounded-md text-sm font-semibold bg-red-600 text-white hover:bg-red-700">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const ApiList: React.FC = () => {
     const navigate = useNavigate();
@@ -10,6 +38,8 @@ const ApiList: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [apiToDelete, setApiToDelete] = useState<ApiDocument | null>(null);
 
     useEffect(() => {
         loadApis();
@@ -35,14 +65,45 @@ const ApiList: React.FC = () => {
         (api.team && api.team.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    const formatDateTime = (timestamp) => {
-        // Convertir timestamp a milisegundos (multiplicar por 1000)
-        const date = new Date(timestamp * 1000);
-        
-        const pad = (n) => n.toString().padStart(2, '0');
-        
-        return `${pad(date.getUTCDate())}/${pad(date.getUTCMonth() + 1)}/${date.getUTCFullYear()} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
-    }; 
+    // Format timestamp to readable date
+    const formatDate = (timestamp: string | undefined) => {
+        if (!timestamp) return 'N/A';
+        const date = new Date(parseInt(timestamp) * 1000);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const openDeleteDialog = (api: ApiDocument) => {
+        setApiToDelete(api);
+        setIsDialogOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (apiToDelete) {
+            try {
+                await apiService.deleteApi(apiToDelete.id);
+                loadApis();
+                // addNotification(`API "${apiToDelete.name}" deleted.`, 'success');
+            } catch (error) {
+                // addNotification('Failed to delete API.', 'error');
+            }
+        }
+        setIsDialogOpen(false);
+        setApiToDelete(null);
+    };
+
+    const handleToggleActive = async (apiId: string, currentState: boolean) => {
+        try {
+            await apiService.updateApiStatus(apiId, !currentState);
+            loadApis();
+        } catch (error) {
+        }
+    };
 
     if (loading) {
         return (
@@ -124,8 +185,10 @@ const ApiList: React.FC = () => {
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredApis.map((api) => (
-                        <div key={api.id} className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="p-6">
+                        <div key={api.id} className={`bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col ${
+                            !api.active ? 'opacity-50 hover:opacity-100' : ''
+                        }`}>
+                            <div className="p-6 flex-1">
                                 {/* API Header */}
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex-1">
@@ -138,9 +201,22 @@ const ApiList: React.FC = () => {
                                             </span>
                                         )}
                                     </div>
-                                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                                        <Eye size={20} />
-                                    </button>
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => handleToggleActive(api.id, api.active)}>
+                                            {api.active ? (
+                                                <ToggleRight size={24} className="text-green-500 cursor-pointer" />
+                                            ) : (
+                                                <ToggleLeft size={24} className="text-gray-400 cursor-pointer" />
+                                            )}
+                                        </button>
+
+                                        <button 
+                                            onClick={() => openDeleteDialog(api)} 
+                                            className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* Description */}
@@ -174,19 +250,19 @@ const ApiList: React.FC = () => {
                                         <div className="h-4 w-4 mr-2 flex items-center justify-center">
                                             <Calendar size={16} />
                                         </div>
-                                        <span>{formatDateTime(api.createdAt)}</span>
+                                        <span>{formatDate(api.createdAt)}</span>
                                     </div>
-                                </div>
 
-                                {/* Base URL from Configuration */}
-                                {api.apiConfiguration?.baseUrl && (
-                                    <div className="mt-4 pt-4 border-t border-gray-100">
-                                        <div className="text-xs text-gray-500 mb-2">Base URL:</div>
-                                        <div className="text-xs bg-gray-50 px-2 py-1 rounded truncate">
-                                            {api.apiConfiguration.baseUrl}
+                                    {/* Base URL */}
+                                    {api.apiConfiguration?.baseUrl && (
+                                        <div className="flex items-center text-gray-600">
+                                            <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                                                <Globe size={16} />
+                                            </div>
+                                            <span className="truncate">{api.apiConfiguration.baseUrl}</span>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                             </div>
 
                             {/* Actions */}
@@ -198,14 +274,18 @@ const ApiList: React.FC = () => {
                                     <Settings size={14} />
                                     Manage
                                 </button>
-                                <button className="text-green-600 hover:text-green-800 text-sm font-medium">
-                                    Chat with API
-                                </button>
                             </div>
                         </div>
                     ))}
                 </div>
             )}
+
+            <DeleteConfirmationDialog
+                isOpen={isDialogOpen}
+                onClose={() => setIsDialogOpen(false)}
+                onConfirm={handleConfirmDelete}
+                apiName={apiToDelete?.name || ''}
+            />
         </div>
     );
 };

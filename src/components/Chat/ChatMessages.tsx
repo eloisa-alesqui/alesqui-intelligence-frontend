@@ -5,6 +5,8 @@ import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { formatSmartTimestamp } from '../../utils/dateUtils';
+import { chatService } from '../../services/chatService';
+import ChatMessageChart from './ChatMessageChart';
 
 // Types
 type ChatMessageForRender = {
@@ -126,10 +128,22 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
 
     const CustomLink: FC<any> = ({ href, children, ...props }) => {
         const isDownloadLink = href && href.includes('/api/files/download/');
+
+        const handleDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.preventDefault(); // Evita que el navegador navegue a la URL del href
+    
+            try {
+                await chatService.downloadFile(href);
+            } catch (error) {
+                console.error("Error al iniciar la descarga desde el componente.", error);
+            }
+        };
+
         if (isDownloadLink) {
             return (
                 <a
                     href={href}
+                    onClick={handleDownload} 
                     className="inline-flex items-center text-blue-600 hover:text-blue-800 underline break-all"
                     {...props}
                 >
@@ -263,6 +277,11 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
                                     </div>
                                 )}
                             </div>
+
+                            {message.type === 'bot' && message.chart && (
+                                <ChatMessageChart chartData={message.chart} />
+                            )}
+
                             {message.type === 'bot' && !message.isError && message.reasoning && isItUser && (
                                 <ReasoningSection
                                     reasoning={message.reasoning}

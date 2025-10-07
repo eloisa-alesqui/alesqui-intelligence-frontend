@@ -7,8 +7,8 @@ import ProtectedRoute from './components/security/ProtectedRoute';
 import UnauthorizedPage from './pages/UnauthorizedPage'; 
 
 import SetupTab from './components/Setup/SetupTab';
-import ApiList from './components/ApiList/ApiList';
-import ManageApiPage from './components/ApiList/ManageApiPage';
+import ApiList from './components/ApiDetails/ApiList';
+import ManageApiPage from './components/ApiDetails/ManageApiPage';
 import ChatTab from './components/Chat/ChatTab';
 
 /**

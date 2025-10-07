@@ -17,17 +17,13 @@ const AppLayout: React.FC = () => {
     // The notification state will be managed by its own context (see explanation below).
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
             {/* The Header is part of the consistent layout for all authenticated views. */}
             <Header user={user} onLogout={logout} />
 
             <Notifications />
 
-            <main className="h-[calc(100vh-4.1rem)]">
-                {/* The <Outlet /> component from react-router-dom is a placeholder.
-                  It renders the specific child route component that matches the current URL.
-                  (e.g., <SetupTab />, <ApiList />, or <ChatTab />)
-                */}
+            <main className="flex-1 overflow-y-auto">
                 <Outlet />
             </main>
         </div>

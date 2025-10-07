@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiService, ApiDocument } from '../../services/apiService';
+import { apiService } from '../../services/apiService';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import ExampleQueries from './ExampleQueries';
@@ -8,6 +8,7 @@ import { useChat } from '../../hooks/useChat';
 import { useNotifications } from '../../context/NotificationContext';
 import { useAuth } from '../../context/AuthContext';
 import { Bot, Trash2 } from 'lucide-react';
+import { ApiDocument } from '../../types';
 
 /**
  * The main component for the Chat tab.

@@ -4,50 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { apiUnificationService } from '../services/apiUnificationService';
 import { swaggerService } from '../services/swaggerService';
 import { postmanService } from '../services/postmanService';
+import { ApiConfig, ApiFormState } from '../types';
 
 // ================================================================================================
 // TYPE DEFINITIONS
 // ================================================================================================
-
-/**
- * Defines the shape of the multi-step API configuration form state.
- */
-interface ApiFormState {
-    name: string;
-    team: string;
-    description: string;
-    swaggerFile: File | null;
-    postmanFile: File | null;
-    swaggerUploaded: boolean;
-    postmanUploaded: boolean;
-}
-
-/**
- * Defines the shape of the detailed runtime configuration for a unified API.
- */
-interface ApiConfigState {
-    baseUrl: string;
-    timeoutSeconds: number;
-    maxRetries: number;
-    enableLogging: boolean;
-    rateLimit: number;
-    auth: {
-        authRequired: boolean;
-        authType: 'none' | 'api_key' | 'bearer' | 'basic' | 'oauth2_client_credentials';
-        apiKey: string;
-        apiKeyName: string;
-        addApiKeyTo: 'header' | 'query';
-        bearerToken: string;
-        basicAuthUsername: string;
-        basicAuthPassword: string;
-        oauth2ClientCredentials: {
-            clientId: string;
-            clientSecret: string;
-            tokenUrl: string;
-            scopes: string;
-        };
-    };
-}
 
 /**
  * Defines the props required by the useApiForm hook.
@@ -71,36 +32,14 @@ const initialApiForm: ApiFormState = {
     postmanUploaded: false,
 };
 
-const initialApiConfiguration: ApiConfigState = {
+const initialApiConfiguration: ApiConfig = {
     baseUrl: '',
     timeoutSeconds: 30,
     maxRetries: 3,
     enableLogging: true,
     rateLimit: 0,
     auth: {
-        authRequired: false,
-        // Values: none, api_key, bearer, basic, oauth2_client_credentials
-        authType: 'none', 
-        
-        // Fields for API Key
-        apiKey: '',
-        apiKeyName: 'X-API-Key', // e.g., 'X-API-Key', 'Authorization'
-        addApiKeyTo: 'header', // 'header' or 'query'
-        
-        // Field for Bearer Token
-        bearerToken: '',
-
-        // Fields for Basic Auth
-        basicAuthUsername: '',
-        basicAuthPassword: '',
-
-        // Fields for OAuth 2.0 Client Credentials
-        oauth2ClientCredentials: {
-            clientId: '',
-            clientSecret: '',
-            tokenUrl: '',
-            scopes: '', // Space-separated list of scopes
-        }
+        authType: 'none', // Estado inicial limpio
     }
 };
 
@@ -122,7 +61,7 @@ export const useApiForm = ({ onApiConfigured }: UseApiFormProps) => {
     const { user } = useAuth();
 
     const [apiForm, setApiForm] = useState<ApiFormState>(initialApiForm);
-    const [apiConfig, setApiConfig] = useState<ApiConfigState>(initialApiConfiguration);
+    const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfiguration);
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
 
