@@ -23,10 +23,11 @@ interface ChatMessagesProps {
     chatMessages: ChatMessageForRender[];
     configuredApis: any[];
     isLoading: boolean;
+    statusMessage: string | null;
     isItUser: boolean;
 }
 
-const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isLoading, isItUser }) => {
+const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isLoading, statusMessage, isItUser }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
@@ -301,22 +302,27 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
     // Loading indicator
     const LoadingIndicator = () => (
         <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-3 max-w-xs">
-                <div className="flex items-center space-x-2">
-                    <Bot className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                    <div className="flex space-x-1">
-                        {[0, 1, 2].map((i) => (
-                            <div
-                                key={i}
-                                className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                                style={{ animationDelay: `${i * 0.1}s` }}
-                            />
-                        ))}
+            <div className="bg-gray-100 rounded-lg px-4 py-3 max-w-md">
+                <div className="flex items-center space-x-3">
+
+                    <div className="relative flex items-center justify-center w-8 h-8">
+                        <Bot className="w-5 h-5 text-blue-700 z-10 relative" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-6 h-6 border-2 border-blue-400 rounded-full animate-ping opacity-80"></div>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-6 h-6 border border-blue-300 rounded-full animate-ping opacity-60" 
+                                style={{ animationDelay: '0.6s', animationDuration: '1.5s' }}></div>
+                        </div>
                     </div>
+                    
+                    <span className="text-sm text-gray-600">
+                        {statusMessage || 'Thinking...'}
+                    </span>
                 </div>
             </div>
         </div>
-    );
+    );    
 
     // Empty state
     const EmptyState = () => (

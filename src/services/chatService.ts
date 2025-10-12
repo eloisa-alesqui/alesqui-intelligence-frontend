@@ -1,5 +1,6 @@
 import apiClient from '../api/axiosConfig';
 import { ChartDataType } from '../components/Chat/ChatMessageChart';
+import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 // ================================================================================================
 // TYPE DEFINITIONS
@@ -23,7 +24,13 @@ export interface ChatRequest {
     query: string;
     conversationId: string;
     // Includes all settings from ChatSettings
-    [key: string]: any; 
+    [key: string]: any;
+}
+
+// DTO from the Backend Stream
+export interface SseEvent {
+    type: 'STATUS' | 'FINAL_RESPONSE' | 'ERROR';
+    payload: any;
 }
 
 /**
@@ -31,34 +38,13 @@ export interface ChatRequest {
  */
 export interface ChatResponse {
     content: string;
-    timestamp: number; // Expecting a Unix timestamp (seconds)
-    conversationId: string;
-    success: boolean;
-    processingType: string;
-    iterations: number;
-    reasoning: string;
-    processingTimeMs: number;
-    confidenceScore: number;
-    metadata?: Record<string, any>;
-    chart?: any; // Can be any chart data structure
-    error?: string;
-}
-
-/**
- * Defines the structure of the final, processed response returned by the service.
- * This is a more frontend-friendly version of ChatResponse.
- */
-export interface SendMessageResponse {
-    content: string;
-    timestamp: Date; // Converted to a Date object
+    timestamp: number;
     conversationId: string;
     success: boolean;
     processingType: string;
     reasoning: string;
     processingTimeMs: number;
-    metadata?: Record<string, any>;
     chart?: any;
-    error: boolean;
 }
 
 /**
@@ -82,6 +68,17 @@ export interface ConversationDetail {
     isError: boolean;
 }
 
+// --- CALLBACKS INTERFACE FOR THE NEW STREAMING METHOD ---
+/*
+ * Callbacks interface for the streaming method
+*/
+interface StreamCallbacks {
+    onStatus: (message: string) => void;
+    onFinalResponse: (response: ChatResponse) => void;
+    onError: (error: string) => void;
+    onClose: () => void;
+}
+
 // ================================================================================================
 // CHAT SERVICE CLASS
 // ================================================================================================
@@ -95,19 +92,25 @@ export interface ConversationDetail {
 class ChatService {
     private baseUrl = '/api/chat';
     private conversationId: string | null = null;
+    private ctrl: AbortController | null = null; // To allow aborting the stream
 
     /**
-     * Sends a message to the backend chat service with the specified settings.
-     * This is the core method for communicating with the AI.
+     * Initiates a streaming chat request to the backend.
+     * Uses callbacks to handle the flow of events (status, final response, error).
      * @param message The user's query.
      * @param settings The configuration for the chat request.
-     * @returns A promise that resolves to a frontend-friendly chat response.
+     * @param callbacks An object containing handler functions for stream events.
      */
-    async sendMessage(message: string, settings: ChatSettings): Promise<SendMessageResponse> {
-        // Ensure a conversation ID exists for this session.
+    async streamMessage(message: string, settings: ChatSettings, callbacks: StreamCallbacks) {
         if (!this.conversationId) {
             this.conversationId = this.generateConversationId();
         }
+
+        // Abort any previous stream that might still be running
+        if (this.ctrl) {
+            this.ctrl.abort();
+        }
+        this.ctrl = new AbortController();
 
         const requestBody: ChatRequest = {
             query: message,
@@ -115,49 +118,48 @@ class ChatService {
             ...settings,
         };
 
-        try {
-            // Use the centralized apiClient for the authenticated request.
-            const response = await apiClient.post<ChatResponse>(`${this.baseUrl}/message`, requestBody);
-            const data = response.data;
+        const token = localStorage.getItem('accessToken');
 
-            // Update the conversation ID from the response to maintain state.
-            if (data.conversationId) {
-                this.conversationId = data.conversationId;
+        await fetchEventSource(`${this.baseUrl}/stream`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(requestBody),
+            signal: this.ctrl.signal,
+
+            onmessage(event) {
+                const sseEvent: SseEvent = JSON.parse(event.data);
+                switch (sseEvent.type) {
+                    case 'STATUS':
+                        callbacks.onStatus(sseEvent.payload as string);
+                        break;
+                    case 'FINAL_RESPONSE':
+                        const chatResponse = sseEvent.payload as ChatResponse;
+                        // Update conversationId from the final response
+                        if (chatResponse.conversationId) {
+                            chatService.conversationId = chatResponse.conversationId;
+                        }
+                        callbacks.onFinalResponse(chatResponse);
+                        break;
+                    case 'ERROR':
+                        callbacks.onError(sseEvent.payload as string);
+                        break;
+                }
+            },
+            onclose() {
+                callbacks.onClose();
+                chatService.ctrl = null; // Clear the controller
+            },
+            onerror(err) {
+                callbacks.onError(err.message || 'A network error occurred.');
+                chatService.ctrl = null; // Clear the controller
+                throw err; // This is important to stop retries
             }
-
-            // Map the backend response to a more frontend-friendly format.
-            return {
-                content: data.content,
-                timestamp: new Date(data.timestamp * 1000), // Convert Unix timestamp
-                conversationId: data.conversationId,
-                success: data.success,
-                processingType: data.processingType,
-                reasoning: data.reasoning || '',
-                processingTimeMs: data.processingTimeMs,
-                metadata: data.metadata,
-                chart: data.chart,
-                error: !data.success
-            };
-        } catch (error: any) {
-            console.error('Error sending message:', error);
-
-            // Construct a standardized error response.
-            const errorMessage = error.response?.data?.message || error.message || 'An unknown error occurred';
-            return {
-                content: `Error: ${errorMessage}`,
-                timestamp: new Date(),
-                conversationId: this.conversationId || 'error-no-id',
-                success: false,
-                processingType: 'ERROR',
-                reasoning: '',
-                processingTimeMs: 0,
-                metadata: undefined,
-                chart: undefined,
-                error: true
-            };
-        }
+        });
     }
-
+    
     /**
      * Fetches the list of conversation summaries for the authenticated user.
      */
@@ -234,16 +236,11 @@ class ChatService {
      */
     async downloadFile(downloadUrl: string): Promise<void> {
         try {
-            // Hacemos la petición GET a través de apiClient para que incluya el token.
-            // 'responseType: blob' es crucial para que Axios maneje la respuesta como un archivo.
             const response = await apiClient.get(downloadUrl, {
                 responseType: 'blob',
             });
 
-            // Extraemos el nombre del archivo de la URL
             const filename = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
-
-            // Creamos un enlace temporal para iniciar la descarga en el navegador
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -258,9 +255,7 @@ class ChatService {
         } catch (error: any) {
             console.error('File download error:', error);
             const errorMessage = error.response?.data?.message || 'Failed to download file.';
-            // Notifica al usuario del error
             alert(`Download Error: ${errorMessage}`);
-            // Lanza el error para que el componente que lo llama pueda reaccionar si es necesario
             throw new Error(errorMessage);
         }
     }
@@ -303,62 +298,4 @@ class ChatService {
       return this.conversationId !== null;
     }
 }
-
-/**
- * Singleton instance of the ChatService.
- */
 export const chatService = new ChatService();
-
-// ================================================================================================
-// UTILITY FUNCTIONS
-// ================================================================================================
-
-/**
- * A collection of pure utility functions related to the chat service.
- */
-export const ChatUtils = {
-    /**
-     * Creates a default set of chat settings for standard queries.
-     * @returns A ChatSettings object with default values.
-     */
-    createDefaultSettings(): ChatSettings {
-        return {
-            forceReAct: false,
-            maxIterations: 5,
-            timeoutSeconds: 30,
-            language: 'en',
-            includeReasoning: false,
-        };
-    },
-
-    /**
-     * Creates a set of chat settings specifically for ReAct-based queries.
-     * @param maxIterations The maximum number of agent iterations.
-     * @returns A ChatSettings object configured for the ReAct engine.
-     */
-    createReActSettings(maxIterations = 10): ChatSettings {
-        return {
-            forceReAct: true,
-            maxIterations,
-            timeoutSeconds: 60,
-            language: 'en',
-            includeReasoning: true,
-        };
-    },
-
-    /**
-     * Validates a ChatSettings object to ensure its values are within acceptable ranges.
-     * @param settings The settings object to validate.
-     * @returns True if the settings are valid, otherwise false.
-     */
-    validateSettings(settings: ChatSettings): boolean {
-        return (
-            typeof settings.forceReAct === 'boolean' &&
-            settings.maxIterations >= 1 && settings.maxIterations <= 20 &&
-            settings.timeoutSeconds >= 0 &&
-            settings.language.length > 0 && settings.language.length <= 5 &&
-            typeof settings.includeReasoning === 'boolean'
-        );
-    }
-
-};

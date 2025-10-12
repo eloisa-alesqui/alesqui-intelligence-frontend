@@ -1,12 +1,6 @@
 import { useState, useCallback } from 'react';
-import {
-    chatService,
-    ChatSettings,
-    SendMessageResponse,
-    ConversationSummary,
-    ConversationDetail
-} from '../services/chatService';
-import { useNotifications, NotificationType } from '../context/NotificationContext';
+import { chatService, ChatSettings, ChatResponse, ConversationSummary } from '../services/chatService';
+import { useNotifications } from '../context/NotificationContext';
 import { ChartDataType } from '../components/Chat/ChatMessageChart';
 
 // Define the shape of a single chat message for the UI state.
@@ -20,12 +14,6 @@ export interface ChatMessage {
     chart?: ChartDataType | null;
     reasoning?: string;
     conversationId?: string;
-    processingTimeMs?: number;
-    processingType?: string;
-    metadata?: Record<string, any>;
-
-    // Include the full raw response from the service for backward compatibility or deep debugging
-    responseDetails?: SendMessageResponse;
 }
 
 /**
@@ -41,89 +29,76 @@ export const useChat = () => {
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [statusMessage, setStatusMessage] = useState<string | null>(null);
+    
     const [includeReasoning, setIncludeReasoning] = useState(true);
     const [conversationHistory, setConversationHistory] = useState<ConversationSummary[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     /**
-     * A private helper function to handle the common logic of sending a message.
+     * Sends the current message using customizable settings.
      */
-    const performSendMessage = useCallback(async (message: string, settings: ChatSettings, successNotification: { message: string, type: NotificationType }) => {
+    const handleSendMessage = useCallback(async () => {
+        const message = currentMessage;
         if (!message.trim()) return;
 
         const userMessage: ChatMessage = {
             id: Date.now(),
             type: 'user',
             content: message,
-            timestamp: new Date()
+            timestamp: new Date(),
         };
 
         setChatMessages(prev => [...prev, userMessage]);
         setIsLoading(true);
         setCurrentMessage('');
+        setStatusMessage('Connecting');
 
-        try {
-            const response = await chatService.sendMessage(message, settings);
-
-            const botMessage: ChatMessage = {
-                id: Date.now() + 1,
-                type: 'bot',
-                content: response.content,
-                timestamp: response.timestamp,
-                isError: !response.success, // Use the success flag from the DTO
-                chart: response.chart || null,
-                reasoning: response.reasoning,
-                conversationId: response.conversationId,
-                processingTimeMs: response.processingTimeMs,
-                processingType: response.processingType,
-                metadata: response.metadata,
-                responseDetails: response, // Keep the full object for reference
-            };
-            setChatMessages(prev => [...prev, botMessage]);
-
-            if (response.success) {
-                addNotification(successNotification.message, successNotification.type);
-            } else {
-                addNotification(response.content, 'error');
-            }
-
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-            addNotification(`Error: ${errorMessage}`, 'error');
-
-            const errorBotMessage: ChatMessage = {
-                id: Date.now() + 1,
-                type: 'bot',
-                content: 'Sorry, I encountered an unhandled error. Please check the console and try again.',
-                timestamp: new Date(),
-                isError: true
-            };
-            setChatMessages(prev => [...prev, errorBotMessage]);
-        } finally {
-            setIsLoading(false);
-            fetchHistory();
-        }
-    }, [addNotification]);
-
-
-    /**
-     * Sends the current message using customizable settings.
-     */
-    const handleSendMessage = useCallback(() => {
-        const settings = {
+        const settings: ChatSettings = {
             forceReAct: includeReasoning,
             maxIterations: 10,
-            timeoutSeconds: 90,
-            language: 'es',
-            includeReasoning: includeReasoning
+            timeoutSeconds: 120,
+            language: 'en',
+            includeReasoning: includeReasoning,
         };
-        const notification = {
-            message: `Message processed successfully.`,
-            type: 'success' as NotificationType
-        };
-        performSendMessage(currentMessage, settings, notification);
-    }, [currentMessage, includeReasoning, performSendMessage]);
 
+        await chatService.streamMessage(message, settings, {
+            onStatus: (status) => {
+                setStatusMessage(status);
+            },
+            onFinalResponse: (response: ChatResponse) => {
+                const botMessage: ChatMessage = {
+                    id: Date.now() + 1,
+                    type: 'bot',
+                    content: response.content,
+                    timestamp: new Date(response.timestamp),
+                    isError: !response.success,
+                    chart: response.chart || null,
+                    reasoning: response.reasoning,
+                    conversationId: response.conversationId,
+                };
+                setChatMessages(prev => [...prev, botMessage]);
+                fetchHistory(); 
+            },
+            onError: (errorMsg) => {
+                const errorBotMessage: ChatMessage = {
+                    id: Date.now() + 1,
+                    type: 'bot',
+                    content: `Sorry, an error occurred: ${errorMsg}`,
+                    timestamp: new Date(),
+                    isError: true,
+                };
+                setChatMessages(prev => [...prev, errorBotMessage]);
+                addNotification(errorMsg, 'error');
+            },
+            onClose: () => {
+                setIsLoading(false);
+                setStatusMessage(null);
+            }
+        });
+
+    }, [currentMessage, includeReasoning, addNotification]);
+        
     /**
      * Clears the current chat history to start a new conversation.
      */
@@ -236,6 +211,7 @@ export const useChat = () => {
         chatMessages,
         currentMessage,
         isLoading,
+        statusMessage, 
         includeReasoning,
         setIncludeReasoning,
         setCurrentMessage,
@@ -247,6 +223,6 @@ export const useChat = () => {
         loadConversation,
         clearChat,
         getConversationInfo,
-        handleDeleteConversation
+        handleDeleteConversation,
     };
 };

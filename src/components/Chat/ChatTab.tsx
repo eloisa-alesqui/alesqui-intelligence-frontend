@@ -45,6 +45,7 @@ const ChatTab: React.FC = () => {
         fetchHistory,
         loadConversation,
         handleDeleteConversation,
+        statusMessage,
     } = useChat();
 
     /**
@@ -143,6 +144,7 @@ const ChatTab: React.FC = () => {
                         isItUser={isItUser}
                         configuredApis={configuredApis}
                         isLoading={isLoading}
+                        statusMessage={statusMessage}
                     />
 
                     <div className="flex-shrink-0">

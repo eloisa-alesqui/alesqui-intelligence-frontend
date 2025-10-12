@@ -40,3 +40,23 @@
 .read-the-docs {
   color: #888;
 }
+
+@keyframes ping {
+  0% {
+      transform: scale(0.3);
+      opacity: 0.8;
+  }
+  50% {
+      transform: scale(0.8);
+      opacity: 0.4;
+  }
+  100% {
+      transform: scale(1.2);
+      opacity: 0;
+  }
+}
+
+.animate-ping {
+  background: linear-gradient(45deg, #1e3a8a, #10b981);
+  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
