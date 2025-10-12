@@ -10,7 +10,6 @@ import { fetchEventSource } from '@microsoft/fetch-event-source';
  * Defines the configurable settings for a chat interaction.
  */
 export interface ChatSettings {
-    forceReAct: boolean;
     maxIterations: number;
     timeoutSeconds: number;
     language: string;

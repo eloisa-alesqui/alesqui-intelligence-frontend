@@ -55,7 +55,6 @@ export const useChat = () => {
         setStatusMessage('Connecting');
 
         const settings: ChatSettings = {
-            forceReAct: includeReasoning,
             maxIterations: 10,
             timeoutSeconds: 120,
             language: 'en',

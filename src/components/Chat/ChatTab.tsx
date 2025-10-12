@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { apiService } from '../../services/apiService';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
-import ExampleQueries from './ExampleQueries';
+import AssistantCapabilities from './AssistantCapabilities';
 import ConversationHistory from './ConversationHistory';
 import { useChat } from '../../hooks/useChat';
 import { useNotifications } from '../../context/NotificationContext';
@@ -163,7 +163,7 @@ const ChatTab: React.FC = () => {
 
                 {/* --- Right: Example Queries Panel --- */}
                 <div className="w-92 overflow-hidden hidden lg:block">
-                    <ExampleQueries
+                    <AssistantCapabilities
                         configuredApis={configuredApis}
                         onExampleClick={handleExampleQuery}
                         isItUser={isItUser}

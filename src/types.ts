@@ -100,6 +100,13 @@ export interface Tag {
     description?: string;
 }
 
+/**
+ * Represents the AI-generated business capabilities for an API.
+ */
+export interface GeneratedCapabilities {
+    category: string;
+    capabilities: string[];
+}
 
 /**
  * A generic interface for a document representing a unified API.
@@ -119,6 +126,7 @@ export interface ApiDocument {
     updatedAt?: string;
     active: boolean;
     apiConfiguration: ApiConfig;
+    capabilities?: GeneratedCapabilities; 
     [key: string]: any; // Allows for any additional properties
 }
 
