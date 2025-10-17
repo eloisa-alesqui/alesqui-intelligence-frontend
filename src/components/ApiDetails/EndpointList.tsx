@@ -203,6 +203,18 @@ export const EndpointList: React.FC<{ api: ApiDocument }> = ({ api }) => {
                                                                     {param.required && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-md font-bold">REQUIRED</span>}
                                                                 </div>
                                                                 {param.description && <p className="text-sm text-gray-600 mt-1">{param.description}</p>}
+                                                                {param.schema && param.schema.enumValues && param.schema.enumValues.length > 0 && (
+                                                                    <div className="mt-2">
+                                                                        <span className="text-xs font-semibold text-gray-500 mr-2">Allowed values:</span>
+                                                                        <div className="flex items-center gap-2 flex-wrap mt-1">
+                                                                            {param.schema.enumValues.map((enumValue) => (
+                                                                                <code key={String(enumValue)} className="text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded font-mono">
+                                                                                    {String(enumValue)}
+                                                                                </code>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>

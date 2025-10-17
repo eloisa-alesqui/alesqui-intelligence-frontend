@@ -26,13 +26,24 @@ const SchemaPropertyRow: React.FC<{
                         <span className="font-mono font-semibold text-gray-800">{propName}</span>
                         <span className="font-mono text-blue-600">
                             {displayType}
-                            {/* **CORRECCIÓN**: Mostrar el format si existe */}
                             {propData.format && <span className="text-gray-500 ml-1">({propData.format})</span>}
                         </span>
                         {isRequired && <span className="text-red-500 text-xs font-bold">required</span>}
                     </div>
                     {propData.description && <div className="text-gray-600 mt-1">{propData.description}</div>}
                     {propData.example !== undefined && <div className="text-xs mt-1"><span className="text-gray-500">Example: </span><code className="bg-gray-100 p-1 rounded">{JSON.stringify(propData.example)}</code></div>}
+                    {propData.enumValues && propData.enumValues.length > 0 && (
+                        <div className="text-xs mt-2">
+                            <span className="text-gray-500">Allowed values: </span>
+                            <div className="flex items-center gap-2 flex-wrap mt-1">
+                                {propData.enumValues.map((enumValue: any) => (
+                                    <code key={String(enumValue)} className="bg-gray-100 p-1 rounded font-mono">
+                                        {String(enumValue)}
+                                    </code>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
             {isOpen && isExpandable && (
