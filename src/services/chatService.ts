@@ -36,6 +36,7 @@ export interface SseEvent {
  * Defines the structure of the response payload received from the backend chat API.
  */
 export interface ChatResponse {
+    recordId: string;
     content: string;
     timestamp: number;
     conversationId: string;
@@ -59,12 +60,17 @@ export interface ConversationSummary {
  * Defines the structure for a single turn in a detailed conversation history.
  */
 export interface ConversationDetail {
+    id: string;
     userPrompt: string;
     responseText: string;
     responseChart?: ChartDataType;
     stepByStepReasoning?: string;
     timestamp: Date; // ISO date string from backend
     isError: boolean;
+    /** The user's optional comment from when they reported the issue. */
+    userFeedbackComment?: string;
+    /** A list of internal notes added by the IT team. */
+    internalNotes?: string[];
 }
 
 // --- CALLBACKS INTERFACE FOR THE NEW STREAMING METHOD ---
@@ -191,8 +197,9 @@ class ChatService {
      */
     async getConversationDetails(conversationId: string): Promise<ConversationDetail[]> {
         try {
-            // Define an interface for the raw data from the API, where timestamp is a number
+            // Define an interface for the raw data from the API
             interface ConversationDetailFromAPI {
+                id: string;
                 userPrompt: string;
                 responseText: string;
                 responseChart?: ChartDataType;
@@ -212,6 +219,20 @@ class ChatService {
         } catch (error: any) {
             console.error(`Error fetching details for conversation ${conversationId}:`, error);
             throw new Error(error.response?.data?.message || `Failed to fetch details for ${conversationId}`);
+        }
+    }
+
+    /**
+     * Submits a user report for a specific message record.
+     * @param recordId The unique ID of the ConversationRecord.
+     * @param comment The optional comment from the user.
+     */
+    async reportRecord(recordId: string, comment: string): Promise<void> {
+        try {
+            await apiClient.post(`/api/conversations/records/${recordId}/report`, { comment });
+        } catch (error: any) {
+            console.error(`Error reporting record ${recordId}:`, error);
+            throw new Error(error.response?.data?.message || 'Failed to submit report');
         }
     }
 

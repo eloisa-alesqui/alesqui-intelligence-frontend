@@ -7,6 +7,7 @@ import { ChartDataType } from '../components/Chat/ChatMessageChart';
 // This interface now mirrors the backend's ChatResponse DTO more closely.
 export interface ChatMessage {
     id: number;
+    recordId?: string;
     type: 'user' | 'bot';
     content: string;
     timestamp: Date;
@@ -68,6 +69,7 @@ export const useChat = () => {
             onFinalResponse: (response: ChatResponse) => {
                 const botMessage: ChatMessage = {
                     id: Date.now() + 1,
+                    recordId: response.recordId,
                     type: 'bot',
                     content: response.content,
                     timestamp: new Date(response.timestamp),
@@ -159,6 +161,7 @@ export const useChat = () => {
                 };
                 const botMessage: ChatMessage = {
                     id: new Date(detail.timestamp).getTime() + index + 0.5,
+                    recordId: detail.id,
                     type: 'bot',
                     content: detail.responseText,
                     timestamp: new Date(detail.timestamp),

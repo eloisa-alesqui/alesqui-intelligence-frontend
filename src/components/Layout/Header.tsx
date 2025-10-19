@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bot, FileText, Database, MessageCircle, User, LogOut } from 'lucide-react';
+import { Bot, FileText, Database, MessageCircle, User, LogOut, ShieldAlert } from 'lucide-react';
 import logo from '../../assets/logo.png'; 
 
 // TypeScript types for the component's props.
@@ -30,6 +30,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     const navItems = [
         { id: 'setup', label: 'API Configuration', icon: FileText, to: '/setup', roles: ['ROLE_IT'] },
         { id: 'apis', label: 'Configured APIs', icon: Database, to: '/apis', roles: ['ROLE_IT'] },
+        { id: 'diagnostics', label: 'Diagnostics', icon: ShieldAlert, to: '/diagnostics', roles: ['ROLE_IT'] },
         { id: 'chat', label: 'Chat with APIs', icon: MessageCircle, to: '/chat' }
     ];
 

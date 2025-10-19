@@ -10,6 +10,7 @@ import SetupTab from './components/Setup/SetupTab';
 import ApiList from './components/ApiDetails/ApiList';
 import ManageApiPage from './components/ApiDetails/ManageApiPage';
 import ChatTab from './components/Chat/ChatTab';
+import DiagnosticsTab from './components/Diagnostics/DiagnosticsTab';
 
 /**
  * The main application component.
@@ -42,6 +43,7 @@ const AlesquiIntelligenceApp: React.FC = () => {
                         <Route path="/setup" element={<SetupTab />} />
                         <Route path="/apis" element={<ApiList />} />
                         <Route path="/apis/:apiId" element={<ManageApiPage />} />
+                        <Route path="/diagnostics" element={<DiagnosticsTab />} />
                     </Route>
 
                 </Route>

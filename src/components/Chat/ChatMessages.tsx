@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, FC, ReactNode } from 'react';
-import { Bot, User, AlertCircle, Download, FileText, File, FileSpreadsheet, Image, Video, Music, Archive, ChevronDown, ChevronUp, Brain, Loader2, ExternalLink } from 'lucide-react';
+import { Bot, User, AlertCircle, Download, ChevronDown, ChevronUp, Brain, ExternalLink, Flag, X, Send, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -7,10 +7,12 @@ import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { formatSmartTimestamp } from '../../utils/dateUtils';
 import { chatService } from '../../services/chatService';
 import ChatMessageChart from './ChatMessageChart';
+import { useNotifications } from '../../context/NotificationContext';
 
 // Types
 type ChatMessageForRender = {
     id: string;
+    recordId?: string;
     content: string;
     type: 'user' | 'bot';
     timestamp: Date;
@@ -27,12 +29,135 @@ interface ChatMessagesProps {
     isItUser: boolean;
 }
 
+interface ReportIssueModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSubmit: (comment: string) => Promise<void>;
+    message: ChatMessageForRender | null;
+}
+
+const ReportIssueModal: FC<ReportIssueModalProps> = ({ isOpen, onClose, onSubmit, message }) => {
+    const [comment, setComment] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        // Clear comment when modal opens
+        if (isOpen) {
+            setComment("");
+        }
+    }, [isOpen]);
+
+    if (!isOpen || !message) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            await onSubmit(comment);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-gray-800 flex items-center">
+                        <Flag className="w-5 h-5 mr-2 text-red-500" />
+                        Report an issue with this response
+                    </h3>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                
+                <p className="text-sm text-gray-600 mb-2">
+                    You are reporting an issue for the following message:
+                </p>
+                <div className="bg-gray-100 p-3 rounded-md border border-gray-200 max-h-32 overflow-y-auto mb-4">
+                    <p className="text-sm text-gray-700 italic truncate">
+                        {message.content}
+                    </p>
+                </div>
+                
+                <form onSubmit={handleSubmit}>
+                    <label htmlFor="reportComment" className="text-sm font-medium text-gray-700 block mb-2">
+                        Optional: What went wrong?
+                    </label>
+                    <textarea
+                        id="reportComment"
+                        rows={3}
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="e.g., The data seems incorrect, the chart is wrong..."
+                    />
+                    
+                    <div className="flex justify-end space-x-3 mt-5">
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            className="px-4 py-2 rounded-md text-sm font-semibold bg-gray-200 text-gray-800 hover:bg-gray-300 disabled:opacity-50"
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            className="px-4 py-2 rounded-md text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 flex items-center disabled:opacity-50"
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? (
+                                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                                <Send className="w-4 h-4 mr-2" />
+                            )}
+                            Submit Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isLoading, statusMessage, isItUser }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const [expandedReasoning, setExpandedReasoning] = useState<Record<string, boolean>>({});
     const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+
+    const { addNotification } = useNotifications();
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [reportingMessage, setReportingMessage] = useState<ChatMessageForRender | null>(null);
+
+    const handleOpenReportModal = (message: ChatMessageForRender) => {
+        setReportingMessage(message);
+        setIsReportModalOpen(true);
+    };
+
+    const handleCloseReportModal = () => {
+        setIsReportModalOpen(false);
+        setReportingMessage(null);
+    };
+
+    const handleSubmitReport = async (comment: string) => {
+        if (!reportingMessage || !reportingMessage.recordId) {
+            addNotification("Cannot report message: Missing message ID.", 'error');
+            return;
+        }
+        
+        try {
+            await chatService.reportRecord(reportingMessage.recordId, comment);
+            addNotification("Issue reported successfully. Thank you for your feedback!", 'success');
+            handleCloseReportModal();
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            addNotification(`Error submitting report: ${errorMessage}`, 'error');
+        }
+    };
 
     // URL transform function
     const urlTransform = (uri: string) => {
@@ -241,9 +366,10 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
     // Message bubble component
     const MessageBubble: FC<{ message: ChatMessageForRender, index: number }> = ({ message, index }) => {
         const isUser = message.type === 'user';
+        const canReport = !isUser && message.recordId;
 
         return (
-            <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+            <div className={`group flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-4xl px-4 py-3 rounded-lg ${isUser
                         ? 'bg-blue-600 text-white'
                         : message.isError
@@ -289,9 +415,23 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
                                     messageId={String(message.id) || `msg-${index}`}
                                 />
                             )}
-                            <p className={`text-xs mt-2 text-right w-full ${isUser ? 'text-blue-200' : 'text-gray-500'}`}>
-                                {formatSmartTimestamp(message.timestamp)}
-                            </p>
+                            
+                            <div className="flex justify-between items-center mt-2">
+                                {canReport ? (
+                                    <button 
+                                        onClick={() => handleOpenReportModal(message)}
+                                        className="flex items-center text-xs text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Report an issue with this response"
+                                    >
+                                        <Flag className="w-3 h-3 mr-1" />
+                                        Report issue
+                                    </button>
+                                ) : <div />} {/* Empty div to maintain layout */}
+
+                                <p className={`text-xs ${isUser ? 'text-blue-200' : 'text-gray-500'}`}>
+                                    {formatSmartTimestamp(message.timestamp)}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -362,6 +502,14 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
 
     return (
         <div ref={containerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+
+            <ReportIssueModal
+                isOpen={isReportModalOpen}
+                onClose={handleCloseReportModal}
+                onSubmit={handleSubmitReport}
+                message={reportingMessage}
+            />
+
             {chatMessages.length === 0 ? (
                 <EmptyState />
             ) : (

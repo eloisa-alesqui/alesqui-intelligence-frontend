@@ -93,6 +93,7 @@ const ChatTab: React.FC = () => {
     const formattedChatMessages = useMemo(() => chatMessages.map(msg => ({
         ...msg,
         id: String(msg.id),
+        recordId: msg.recordId,
     })), [chatMessages]);
 
     /**
@@ -102,7 +103,7 @@ const ChatTab: React.FC = () => {
     const currentConversationId = getConversationInfo().conversationId;
 
     return (
-        <div className="h-full w-full max-w-screen-2xl mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="h-full w-full p-4 sm:p-6 lg:p-8">
             <div className="h-full flex gap-6">
                 {/* --- Left: Conversation History Panel --- */}
                 <ConversationHistory
