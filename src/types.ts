@@ -41,42 +41,19 @@ export interface SchemaProperty {
     // Object properties
     properties?: { [key: string]: SchemaProperty };
     required?: string[];
-    minProperties?: number;
-    maxProperties?: number;
+    additionalProperties?: boolean | SchemaProperty;
+}
 
-    // Additional properties
-    additionalProperties?: any;
-    additionalPropertiesSchema?: SchemaProperty;
-
-    // Array items
-    items?: SchemaProperty;
-
-    // Enumerations
-    enumValues?: any[];
-
-    // Composition
-    allOf?: SchemaProperty[];
-    oneOf?: SchemaProperty[];
-    anyOf?: SchemaProperty[];
-    not?: SchemaProperty;
-
-    // Discriminator
-    discriminator?: {
-        propertyName?: string;
-        mapping?: { [key: string]: string };
-    };
-
-    // Metadata
-    nullable?: boolean;
-    readOnly?: boolean;
-    writeOnly?: boolean;
-    deprecated?: boolean;
-
-    // XML
-    xml?: any;
-
-    // Extensions
-    extensions?: { [key: string]: any };
+export interface ChatMessageForRender {
+    id: string;
+    conversationId: string;
+    type: 'user' | 'bot';
+    content: string;
+    timestamp: string;
+    isError?: boolean;
+    recordId?: string;
+    reasoning?: any; // Added to support reasoning display
+    steps?: any[]; // You might want to replace 'any' with a more specific type for steps
 }
 
 export interface Schema {

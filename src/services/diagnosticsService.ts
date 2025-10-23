@@ -1,5 +1,6 @@
 import apiClient from '../api/axiosConfig';
-import { ConversationDetail } from './chatService';
+// Import the new types
+import { ConversationDetail, ReasoningStep } from './chatService';
 
 /**
  * Represents the Spring Pageable object for requests.
@@ -83,12 +84,13 @@ class DiagnosticsService {
      */
     async getConversationDetailsForIT(conversationId: string): Promise<ConversationDetail[]> {
         try {
+            // This interface defines the raw API response
             interface ConversationDetailFromAPI {
                 id: string;
                 userPrompt: string;
                 responseText: string;
-                responseChart?: any; // Reutiliza tu tipo ChartDataType si lo tienes
-                stepByStepReasoning?: string;
+                responseChart?: any; 
+                stepByStepReasoning?: ReasoningStep[];
                 timestamp: number;
                 isError: boolean;
                 userFeedbackComment?: string;
@@ -99,10 +101,8 @@ class DiagnosticsService {
                 `${this.baseUrl}/conversations/${conversationId}`
             );
 
-            return response.data.map(detail => ({
-                ...detail,
-                timestamp: new Date(detail.timestamp * 1000),
-            }));
+            // Use the private mapper to convert to the standard ConversationDetail
+            return response.data.map(this.mapDetailResponse);
 
         } catch (error: any) {
             console.error(`Error fetching IT details for conversation ${conversationId}:`, error);
@@ -158,6 +158,7 @@ class DiagnosticsService {
     private mapDetailResponse(data: any): ConversationDetail {
         return {
             ...data,
+            stepByStepReasoning: data.stepByStepReasoning,
             timestamp: new Date(data.timestamp * 1000)
         };
     }

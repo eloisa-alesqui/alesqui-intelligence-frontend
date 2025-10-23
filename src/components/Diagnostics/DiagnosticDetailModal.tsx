@@ -2,16 +2,50 @@ import React, { useState, useEffect, FC, useRef } from 'react';
 import { diagnosticsService } from '../../services/diagnosticsService';
 import { ConversationDetail } from '../../services/chatService';
 import { 
-    Loader2, X, AlertCircle, Bot, User, Brain, ChevronDown, ChevronUp, 
+    Loader2, X, AlertCircle, Bot, User, ChevronDown, ChevronUp, 
     MessageSquare, StickyNote, Send, Flag, Check
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ChatMessageChart, { ChartDataType } from '../Chat/ChatMessageChart'; // Import the chart component and type
 import { useNotifications } from '../../context/NotificationContext'; 
+import InteractiveReasoning from '../Chat/InteractiveReasoning';
 // Assuming you have a date utility function, if not, replace with new Date().toLocaleString()
 import { formatSmartTimestamp } from '../../utils/dateUtils'; 
 import { TicketStatus, allStatuses } from '../../config/ticketStatusConfig';
+
+/* --------------------------
+   Error Boundary for Markdown
+   -------------------------- */
+class MarkdownErrorBoundary extends React.Component<
+    { children: React.ReactNode },
+    { hasError: boolean; error?: Error }
+> {
+    constructor(props: { children: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: undefined };
+    }
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error: Error) {
+        // Could log to a tracking service here
+        // console.error('Markdown render error', error);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    <div className="flex items-center space-x-2">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>Unable to render markdown content.</span>
+                    </div>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 // --- Props Interface ---
 
@@ -76,9 +110,12 @@ const DiagnosticMessageBubble = React.forwardRef<
                         <div className="flex-1 min-w-0">
                             {/* Main bot content */}
                             <div className="prose prose-sm max-w-none">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                    {detail.responseText}
-                                </ReactMarkdown>
+                                {/* Wrap markdown render in Error Boundary and ensure we're passing a string */}
+                                <MarkdownErrorBoundary>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {String(detail.responseText ?? '')}
+                                    </ReactMarkdown>
+                                </MarkdownErrorBoundary>
                             </div>
 
                             {/* Chart, if it exists */}
@@ -86,25 +123,13 @@ const DiagnosticMessageBubble = React.forwardRef<
                                 <ChatMessageChart chartData={detail.responseChart as ChartDataType} />
                             )}
                             
-                            {/* Reasoning, if it exists */}
-                            {detail.stepByStepReasoning && (
-                                <div className="mt-4 border-t border-gray-200 pt-3">
-                                    <button
-                                        onClick={() => setIsReasoningOpen(!isReasoningOpen)}
-                                        className="flex items-center space-x-2 text-sm text-gray-600 hover:text-gray-800"
-                                    >
-                                        {isReasoningOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                                        <Brain className="w-4 h-4 text-blue-600" />
-                                        <span className="font-medium">View step-by-step reasoning</span>
-                                    </button>
-                                    {isReasoningOpen && (
-                                        <div className="mt-3 p-3 bg-blue-50/50 rounded-lg border border-blue-200 prose prose-sm max-w-none">
-                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                                {detail.stepByStepReasoning}
-                                            </ReactMarkdown>
-                                        </div>
-                                    )}
-                                </div>
+                            {/* Reasoning: render only when we have structured steps */}
+                            {Array.isArray(detail.stepByStepReasoning) && detail.stepByStepReasoning.length > 0 && (
+                                <InteractiveReasoning
+                                    steps={detail.stepByStepReasoning}
+                                    isExpanded={isReasoningOpen}
+                                    onToggle={() => setIsReasoningOpen(!isReasoningOpen)}
+                                />
                             )}
 
                             {/* --- Feedback & Internal Notes (The diagnostic part) --- */}

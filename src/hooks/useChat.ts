@@ -1,10 +1,9 @@
 import { useState, useCallback } from 'react';
-import { chatService, ChatSettings, ChatResponse, ConversationSummary } from '../services/chatService';
+import { chatService, ChatSettings, ChatResponse, ConversationSummary, ReasoningStep } from '../services/chatService'; // <-- Import ReasoningStep
 import { useNotifications } from '../context/NotificationContext';
 import { ChartDataType } from '../components/Chat/ChatMessageChart';
 
 // Define the shape of a single chat message for the UI state.
-// This interface now mirrors the backend's ChatResponse DTO more closely.
 export interface ChatMessage {
     id: number;
     recordId?: string;
@@ -13,7 +12,7 @@ export interface ChatMessage {
     timestamp: Date;
     isError?: boolean;
     chart?: ChartDataType | null;
-    reasoning?: string;
+    reasoningSteps?: ReasoningStep[];
     conversationId?: string;
 }
 
@@ -75,7 +74,7 @@ export const useChat = () => {
                     timestamp: new Date(response.timestamp),
                     isError: !response.success,
                     chart: response.chart || null,
-                    reasoning: response.reasoning,
+                    reasoningSteps: response.reasoningSteps,
                     conversationId: response.conversationId,
                 };
                 setChatMessages(prev => [...prev, botMessage]);
@@ -167,7 +166,7 @@ export const useChat = () => {
                     timestamp: new Date(detail.timestamp),
                     isError: detail.isError,
                     chart: detail.responseChart || null,
-                    reasoning: detail.stepByStepReasoning
+                    reasoningSteps: detail.stepByStepReasoning
                 };
                 return [userMessage, botMessage];
             }).flat();

@@ -3,7 +3,38 @@ import { ChartDataType } from '../components/Chat/ChatMessageChart';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 // ================================================================================================
-// TYPE DEFINITIONS
+// NEW REASONING TYPE DEFINITIONS
+// ================================================================================================
+
+export enum StepType {
+    THOUGHT = 'THOUGHT',
+    TOOL_CALL = 'TOOL_CALL',
+    FINAL_RESPONSE = 'FINAL_RESPONSE',
+}
+
+export enum ToolCallStatus {
+    PENDING = 'PENDING',
+    SUCCESS = 'SUCCESS',
+    ERROR = 'ERROR',
+}
+
+export interface ToolCallData {
+    toolName: string;
+    requestArgumentsJson: string;
+    responseDataJson: string;
+    status: ToolCallStatus;
+    executionTimeMs?: number;
+}
+
+export interface ReasoningStep {
+    id: string;
+    type: StepType;
+    textContent: string | null;
+    toolCalls: ToolCallData[] | null;
+}
+
+// ================================================================================================
+// UPDATED TYPE DEFINITIONS
 // ================================================================================================
 
 /**
@@ -42,7 +73,7 @@ export interface ChatResponse {
     conversationId: string;
     success: boolean;
     processingType: string;
-    reasoning: string;
+    reasoningSteps: ReasoningStep[];
     processingTimeMs: number;
     chart?: any;
 }
@@ -64,7 +95,7 @@ export interface ConversationDetail {
     userPrompt: string;
     responseText: string;
     responseChart?: ChartDataType;
-    stepByStepReasoning?: string;
+    stepByStepReasoning?: ReasoningStep[];
     timestamp: Date; // ISO date string from backend
     isError: boolean;
     /** The user's optional comment from when they reported the issue. */
@@ -85,7 +116,7 @@ interface StreamCallbacks {
 }
 
 // ================================================================================================
-// CHAT SERVICE CLASS
+// CHAT SERVICE CLASS (No logical changes, just type updates)
 // ================================================================================================
 
 /**
@@ -198,12 +229,13 @@ class ChatService {
     async getConversationDetails(conversationId: string): Promise<ConversationDetail[]> {
         try {
             // Define an interface for the raw data from the API
+            // This now expects stepByStepReasoning to be an array
             interface ConversationDetailFromAPI {
                 id: string;
                 userPrompt: string;
                 responseText: string;
                 responseChart?: ChartDataType;
-                stepByStepReasoning?: string;
+                stepByStepReasoning?: ReasoningStep[];
                 timestamp: number; // Expecting a Unix timestamp (seconds)
                 isError: boolean;
             }
