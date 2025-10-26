@@ -1,5 +1,5 @@
-import React, { useState, FC, useMemo } from 'react';
-import { Zap, X, FileText, CheckCircle, XCircle, Brain } from 'lucide-react';
+import React, { useState, FC, useMemo, useRef, useEffect } from 'react';
+import { Zap, X, FileText, CheckCircle, XCircle, Brain, Copy as CopyIcon } from 'lucide-react';
 import ToggleChevron from '../Common/ToggleChevron';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -14,6 +14,8 @@ interface JsonViewerProps {
 }
 
 const JsonViewer: FC<JsonViewerProps> = ({ jsonString, title, toolName, response }) => {
+    const [copied, setCopied] = useState(false);
+    const [wrapMode, setWrapMode] = useState(true); // true: wrap lines (no horizontal scroll), false: enable horizontal scroll
     let parsedJson: any;
     let isPlainString = false;
     let formattedOutput: string;
@@ -22,34 +24,52 @@ const JsonViewer: FC<JsonViewerProps> = ({ jsonString, title, toolName, response
     try {
         parsedJson = JSON.parse(jsonString);
 
-        if (toolName === 'call_api' && response && parsedJson?.responseData?.rawResponse) {
-            const rawResponseContent = parsedJson.responseData.rawResponse;
-            try {
-                const parsedRawResponse = JSON.parse(rawResponseContent);
-                mainJsonToDisplay = JSON.stringify(parsedRawResponse, null, 2);
-                isPlainString = false;
-            } catch (innerError) {
-                mainJsonToDisplay = rawResponseContent;
-                isPlainString = true;
+        // Recursively parse any string fields that themselves contain JSON.
+        const deepParseJsonStrings = (value: any, depth = 0): any => {
+            if (depth > 6 || value == null) return value;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+                    try {
+                        const parsed = JSON.parse(trimmed);
+                        return deepParseJsonStrings(parsed, depth + 1);
+                    } catch {
+                        return value;
+                    }
+                }
+                return value;
             }
-        } else if (typeof parsedJson === 'string') {
-            mainJsonToDisplay = parsedJson;
-            isPlainString = true;
-        } else if (parsedJson && typeof parsedJson.response === 'string') {
-            mainJsonToDisplay = parsedJson.response;
-            isPlainString = true;
-        }
+            if (Array.isArray(value)) {
+                return value.map(v => deepParseJsonStrings(v, depth + 1));
+            }
+            if (typeof value === 'object') {
+                const out: any = Array.isArray(value) ? [] : {};
+                for (const [k, v] of Object.entries(value)) {
+                    out[k] = deepParseJsonStrings(v, depth + 1);
+                }
+                return out;
+            }
+            return value;
+        };
 
-        if (!isPlainString) {
+        const transformed = deepParseJsonStrings(parsedJson);
+        // If the parsed content resolves to a plain string, display it as multi-line text
+        // so that newline characters are rendered as actual line breaks.
+        if (typeof transformed === 'string') {
+            isPlainString = true;
+            formattedOutput = transformed; // Already contains real \n characters
+        } else {
+            mainJsonToDisplay = JSON.stringify(transformed, null, 2);
+            isPlainString = false;
+
+            // Final formatting stage (kept for safety)
             try {
-                const jsonToFormat = (mainJsonToDisplay === jsonString) ? parsedJson : JSON.parse(mainJsonToDisplay);
+                const jsonToFormat = (mainJsonToDisplay === jsonString) ? transformed : JSON.parse(mainJsonToDisplay);
                 formattedOutput = JSON.stringify(jsonToFormat, null, 2);
             } catch (formatError) {
                 formattedOutput = mainJsonToDisplay;
                 isPlainString = true;
             }
-        } else {
-            formattedOutput = mainJsonToDisplay;
         }
 
     } catch (e) {
@@ -59,18 +79,75 @@ const JsonViewer: FC<JsonViewerProps> = ({ jsonString, title, toolName, response
 
     const syntaxHighlighterStyle = {
         margin: 0,
-        whiteSpace: 'pre-wrap',
-        wordBreak: 'break-all'
+        whiteSpace: wrapMode ? 'pre-wrap' : 'pre',
+        // In wrap mode, avoid horizontal scroll; otherwise allow it
+        overflowX: wrapMode ? 'hidden' : 'auto',
+        wordBreak: wrapMode ? 'break-word' : 'normal',
+        overflowWrap: wrapMode ? 'anywhere' : 'normal'
     } as React.CSSProperties;
+
+    const handleCopy = async () => {
+        try {
+            if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(formattedOutput);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = formattedOutput;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                (document as any).execCommand && (document as any).execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+        } catch (err) {
+            // Best-effort: still show feedback
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+        }
+    };
 
     return (
         <div className="my-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase">{title}</span>
-            <div className="mt-1 rounded-lg bg-gray-900 overflow-hidden max-h-60 overflow-y-auto p-4">
+            <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-gray-500 uppercase">{title}</span>
+                <div className="flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setWrapMode(w => !w)}
+                        aria-pressed={!wrapMode}
+                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                        title={wrapMode ? 'Enable horizontal scroll' : 'Enable line wrapping'}
+                    >
+                        {wrapMode ? 'Scroll' : 'Wrap'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={handleCopy}
+                        aria-label={`Copy ${title}`}
+                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                    >
+                        <CopyIcon className="w-3.5 h-3.5" />
+                        {copied ? 'Copied' : 'Copy'}
+                    </button>
+                </div>
+            </div>
+            <div className={`mt-1 rounded-lg bg-gray-900 overflow-hidden max-h-60 overflow-y-auto ${wrapMode ? 'overflow-x-hidden' : 'overflow-x-auto'} p-4`}>
                 {isPlainString ? (
-                    <pre className="text-sm text-gray-300 whitespace-pre-wrap break-words">{formattedOutput}</pre>
+                    <pre className={`text-sm text-gray-300 ${wrapMode ? 'whitespace-pre-wrap break-words overflow-x-hidden' : 'whitespace-pre overflow-x-auto'}`}>{formattedOutput}</pre>
                 ) : (
-                    <SyntaxHighlighter style={vscDarkPlus} language="json" PreTag="pre" customStyle={syntaxHighlighterStyle} wrapLongLines={true}>{formattedOutput}</SyntaxHighlighter>
+                    <SyntaxHighlighter
+                        style={vscDarkPlus}
+                        language="json"
+                        PreTag="pre"
+                        customStyle={syntaxHighlighterStyle}
+                        wrapLongLines={wrapMode}
+                    >
+                        {formattedOutput}
+                    </SyntaxHighlighter>
                 )}
             </div>
         </div>
@@ -139,13 +216,30 @@ interface InteractiveReasoningProps {
 
 export const InteractiveReasoning: FC<InteractiveReasoningProps> = React.memo(({ steps, isExpanded, onToggle }) => {
     const [selectedToolCall, setSelectedToolCall] = useState<ToolCallData | null>(null);
+    const contentInnerRef = useRef<HTMLDivElement>(null);
+    const [contentHeight, setContentHeight] = useState<number>(0);
 
     const visibleSteps = useMemo(() => steps.filter(step => step.type !== StepType.FINAL_RESPONSE), [steps]);
     if (visibleSteps.length === 0) return null;
 
-    // Debugging: log mounts and isExpanded changes to help trace chat vs modal behavior
-    // eslint-disable-next-line no-console
-    console.log('[InteractiveReasoning] mount/render', { stepsCount: visibleSteps.length, isExpanded });
+    // Measure inner content height when expanding or when steps change
+    useEffect(() => {
+        if (isExpanded) {
+            const measure = () => {
+                if (contentInnerRef.current) {
+                    // Use offsetHeight to include borders; add a small buffer to avoid clipping due to sub-pixel rounding
+                    const h = contentInnerRef.current.offsetHeight;
+                    setContentHeight(h);
+                }
+            };
+            // Measure on next frame to ensure DOM is painted
+            const raf = requestAnimationFrame(measure);
+            return () => cancelAnimationFrame(raf);
+        } else {
+            // Collapse
+            setContentHeight(0);
+        }
+    }, [isExpanded, visibleSteps.length]);
 
     return (
         <>
@@ -157,8 +251,20 @@ export const InteractiveReasoning: FC<InteractiveReasoningProps> = React.memo(({
                     <span className="font-medium">View step-by-step reasoning</span>
                 </button>
 
-                {isExpanded && (
-                    <div className="mt-3 p-4 bg-blue-50/60 border border-blue-200 rounded-lg space-y-5">
+                <div
+                    className="mt-3 overflow-hidden"
+                    style={{
+                        maxHeight: isExpanded ? contentHeight + 2 : 0,
+                        opacity: isExpanded ? 1 : 0,
+                        // Easing tuned: expand = ease-out (longer), collapse = ease-in (shorter)
+                        transition: isExpanded
+                            ? 'max-height 400ms ease-out, opacity 250ms ease-out'
+                            : 'max-height 300ms ease-in, opacity 180ms ease-in',
+                        willChange: 'max-height, opacity'
+                    }}
+                    aria-hidden={!isExpanded}
+                >
+                    <div ref={contentInnerRef} className="p-4 bg-blue-50/60 border border-blue-200 rounded-lg space-y-5">
                         {visibleSteps.map((step: ReasoningStep, stepIndex: number) => {
                             if (step.type === StepType.THOUGHT) {
                                 let thoughtText = step.textContent || '';
@@ -238,7 +344,7 @@ export const InteractiveReasoning: FC<InteractiveReasoningProps> = React.memo(({
                             return null;
                         })}
                     </div>
-                )}
+                </div>
             </div>
         </>
     );

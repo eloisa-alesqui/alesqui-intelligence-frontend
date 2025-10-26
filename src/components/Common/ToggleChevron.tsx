@@ -1,4 +1,4 @@
-import React, { FC } from 'react';
+import React, { FC, useEffect, useRef } from 'react';
 import { ChevronUp } from 'lucide-react';
 
 interface ToggleChevronProps {
@@ -8,15 +8,33 @@ interface ToggleChevronProps {
 }
 
 const ToggleChevron: FC<ToggleChevronProps> = ({ open, size = 16, className = '' }) => {
-  // Simple implementation: use the ChevronUp icon and rotate via Tailwind classes
-  const rotateClass = open ? 'rotate-180' : 'rotate-0';
-  // Debug log to help diagnose remount vs class toggle issues
-  // eslint-disable-next-line no-console
-  console.log('[ToggleChevron] render', { open });
+  // Track previous state to choose easing based on direction
+  const prevOpenRef = useRef<boolean>(open);
+
+  let transition = 'transform 200ms ease';
+  const prevOpen = prevOpenRef.current;
+  if (prevOpen !== open) {
+    // Opening: ease-out (longer), Closing: ease-in (shorter)
+    transition = open ? 'transform 400ms ease-out' : 'transform 300ms ease-in';
+  }
+
+  useEffect(() => {
+    prevOpenRef.current = open;
+  }, [open]);
+
+  const style: React.CSSProperties = {
+    width: size,
+    height: size,
+    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+    transition,
+    transformOrigin: 'center',
+    willChange: 'transform'
+  };
+
   return (
     <ChevronUp
-      className={`${className} transform transition-transform duration-200 origin-center ${rotateClass}`}
-      style={{ width: size, height: size }}
+      className={className}
+      style={style}
       aria-hidden="true"
     />
   );

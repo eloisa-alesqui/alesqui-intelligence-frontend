@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, FC } from 'react';
-import { Bot, User, AlertCircle, Download, ChevronDown, ChevronUp, Brain, ExternalLink, Flag, X, Send, Loader2, Zap, FileText, CheckCircle, XCircle } from 'lucide-react';
+import { Bot, User, AlertCircle, Download, ChevronDown, ChevronUp, Brain, ExternalLink, Flag, X, Send, Loader2, Zap, FileText, CheckCircle, XCircle, Copy as CopyIcon, Check as CheckIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -66,11 +66,173 @@ interface MessageBubbleProps {
     index: number;
     isReasoningExpanded: boolean; // Controlled by parent
     onToggleReasoning: () => void; // Function provided by parent
+    isItUser: boolean;
+    onOpenReportModal: (message: ChatMessageForRender) => void;
 }
 
 
 // (InteractiveReasoning implemented as an external component)
 
+// =============================================================================
+// Helpers and Markdown components (hoisted to module scope for stability)
+// =============================================================================
+const urlTransform = (uri: string) => {
+    // Transforms sandbox:/ links to actual download URLs
+    if (uri && uri.startsWith('sandbox:/')) {
+        const filePath = uri.replace('sandbox:/', '');
+        const fileName = filePath.split('/').pop();
+        return `/api/files/download/${fileName}`;
+    }
+    return uri;
+};
+
+const renderTextWithUrls = (text: string) => {
+    // Renders plain text, converting URLs into clickable links
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+    return parts.map((part, index) => {
+        if (urlRegex.test(part)) {
+            return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-100 underline break-all inline-flex items-center gap-1 my-1"><ExternalLink className="w-3 h-3 flex-shrink-0" /> <span className="break-all">{part}</span></a>;
+        }
+        return <span key={index}>{part}</span>;
+    });
+};
+
+// Custom Markdown components for styling
+const CustomOrderedList: FC<any> = ({ children, ...props }) => <ol className="list-decimal list-outside ml-6 my-4 space-y-2" {...props}>{children}</ol>;
+const CustomUnorderedList: FC<any> = ({ children, ...props }) => <ul className="list-disc list-outside ml-6 my-4 space-y-2" {...props}>{children}</ul>;
+const CustomListItem: FC<any> = ({ children, ...props }) => <li className="text-gray-900 leading-relaxed" {...props}>{children}</li>;
+const CustomParagraph: FC<any> = ({ children, ...props }) => <p className="mb-3 leading-relaxed text-gray-900 break-words" {...props}>{children}</p>;
+const CustomStrong: FC<any> = ({ children, ...props }) => <strong className="font-semibold text-gray-900" {...props}>{children}</strong>;
+const CodeBlock: FC<any> = ({ node, inline, className, children, ...props }) => {
+    // Renders code blocks with syntax highlighting and copy button
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : '';
+    const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
+    if (!inline && language) {
+        return (
+            <div className="my-4 rounded-lg overflow-hidden">
+                <div className="bg-gray-800 text-gray-300 px-4 py-2 text-xs flex justify-between items-center"><span className="capitalize">{language}</span><button onClick={() => copyToClipboard(String(children))} title="Copy code">📋</button></div>
+                <SyntaxHighlighter style={vscDarkPlus} language={language} PreTag="div" {...props}>{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
+            </div>
+        );
+    }
+    return <code className="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono break-all" {...props}>{children}</code>;
+};
+const CustomLink: FC<any> = ({ href, children, ...props }) => {
+    // Renders links, handling special download links
+    const isDownloadLink = href && href.includes('/api/files/download/');
+    const handleDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault(); try { await chatService.downloadFile(href); } catch (error) { console.error("Error starting download from component.", error); }
+    };
+    if (isDownloadLink) {
+        return <a href={href} onClick={handleDownload} className="inline-flex items-center text-blue-600 hover:text-blue-800 underline break-all" {...props}><Download className="w-4 h-4 mr-1 flex-shrink-0" /><span className="break-all">{children}</span></a>;
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline break-all inline-flex items-center gap-1" {...props}><ExternalLink className="w-3 h-3 flex-shrink-0" /><span className="break-all">{children}</span></a>;
+};
+// Combine all custom components for ReactMarkdown
+const markdownComponents = { code: CodeBlock, a: CustomLink, ol: CustomOrderedList, ul: CustomUnorderedList, li: CustomListItem, p: CustomParagraph, strong: CustomStrong };
+
+// =============================================================================
+// MessageBubble Component (hoisted to module scope to avoid remounts)
+// =============================================================================
+const MessageBubble: FC<MessageBubbleProps> = ({ message, index, isReasoningExpanded, onToggleReasoning, isItUser, onOpenReportModal }) => {
+    const isUser = message.type === 'user';
+    const canReport = !isUser && message.recordId; // Can only report bot messages with a DB record ID
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyMessage = async () => {
+        const textToCopy = message.content || '';
+        try {
+            if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(textToCopy);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                (document as any).execCommand && (document as any).execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+        } catch (e) {
+            setCopied(true);
+            window.setTimeout(() => setCopied(false), 1500);
+        }
+    };
+
+    return (
+        <div className={`group flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+            {/* Message Bubble Styling */}
+            <div className={`max-w-4xl px-4 py-3 rounded-lg ${isUser ? 'bg-blue-600 text-white' : message.isError ? 'bg-red-50 text-red-900 border border-red-200' : 'bg-gray-100 text-gray-900'}`}>
+                <div className="flex items-start space-x-3">
+                    {/* Sender Icon */}
+                    <div className="flex-shrink-0 mt-1">
+                        {isUser ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5 text-blue-600" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        {/* Message Content */}
+                        <div className="break-words">
+                            {isUser ? (
+                                // Render user messages with URL handling
+                                <div className="text-white leading-relaxed whitespace-pre-wrap">{renderTextWithUrls(message.content || '')}</div>
+                            ) : (
+                                // Render bot messages using Markdown
+                                <div className="prose prose-sm max-w-none">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents} urlTransform={urlTransform}>
+                                        {message.content || ''}
+                                    </ReactMarkdown>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Optional: Render Chart if present */}
+                        {message.type === 'bot' && message.chart && (
+                            <ChatMessageChart chartData={message.chart} />
+                        )}
+
+                        {/* Optional: Render Interactive Reasoning if present and user is IT */}
+                        {message.type === 'bot' && !message.isError && message.reasoningSteps && message.reasoningSteps.length > 0 && isItUser && (
+                            <InteractiveReasoning
+                                steps={message.reasoningSteps}
+                                isExpanded={isReasoningExpanded} // Pass down the expansion state
+                                onToggle={onToggleReasoning} // Pass down the toggle function
+                            />
+                        )}
+
+                        {/* Footer: Report Button and Timestamp */}
+                        <div className="flex justify-between items-center mt-2">
+                            {canReport ? (
+                                <button onClick={() => onOpenReportModal(message)} className="flex items-center text-xs text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Report an issue with this response">
+                                    <Flag className="w-3 h-3 mr-1" /> Report issue
+                                </button>
+                            ) : <div />} {/* Placeholder for alignment */}
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={handleCopyMessage}
+                                    className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-black/5 ${isUser ? 'text-blue-200 hover:text-white' : 'text-gray-400 hover:text-gray-600'}`}
+                                    title={copied ? 'Copied' : 'Copy message'}
+                                    aria-label="Copy message"
+                                >
+                                    {copied ? (
+                                        <CheckIcon className="w-3.5 h-3.5" />
+                                    ) : (
+                                        <CopyIcon className="w-3.5 h-3.5" />
+                                    )}
+                                </button>
+                                <p className={`text-xs ${isUser ? 'text-blue-200' : 'text-gray-500'}`}>{formatSmartTimestamp(message.timestamp)}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // =============================================================================
 // Report Issue Modal (No changes)
@@ -212,123 +374,7 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
         }
     };
 
-    // --- Markdown/Rendering Helpers (No Changes) ---
-    const urlTransform = (uri: string) => {
-        // Transforms sandbox:/ links to actual download URLs
-        if (uri && uri.startsWith('sandbox:/')) {
-            const filePath = uri.replace('sandbox:/', '');
-            const fileName = filePath.split('/').pop();
-            return `/api/files/download/${fileName}`;
-        }
-        return uri;
-    };
-    const renderTextWithUrls = (text: string) => {
-        // Renders plain text, converting URLs into clickable links
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const parts = text.split(urlRegex);
-        return parts.map((part, index) => {
-            if (urlRegex.test(part)) {
-                return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-100 underline break-all inline-flex items-center gap-1 my-1"><ExternalLink className="w-3 h-3 flex-shrink-0" /> <span className="break-all">{part}</span></a>;
-            }
-            return <span key={index}>{part}</span>;
-        });
-    };
-    // Custom Markdown components for styling
-    const CustomOrderedList: FC<any> = ({ children, ...props }) => <ol className="list-decimal list-outside ml-6 my-4 space-y-2" {...props}>{children}</ol>;
-    const CustomUnorderedList: FC<any> = ({ children, ...props }) => <ul className="list-disc list-outside ml-6 my-4 space-y-2" {...props}>{children}</ul>;
-    const CustomListItem: FC<any> = ({ children, ...props }) => <li className="text-gray-900 leading-relaxed" {...props}>{children}</li>;
-    const CustomParagraph: FC<any> = ({ children, ...props }) => <p className="mb-3 leading-relaxed text-gray-900 break-words" {...props}>{children}</p>;
-    const CustomStrong: FC<any> = ({ children, ...props }) => <strong className="font-semibold text-gray-900" {...props}>{children}</strong>;
-    const CodeBlock: FC<any> = ({ node, inline, className, children, ...props }) => {
-        // Renders code blocks with syntax highlighting and copy button
-        const match = /language-(\w+)/.exec(className || '');
-        const language = match ? match[1] : '';
-        const copyToClipboard = (text: string) => navigator.clipboard.writeText(text);
-        if (!inline && language) {
-            return (
-                <div className="my-4 rounded-lg overflow-hidden">
-                    <div className="bg-gray-800 text-gray-300 px-4 py-2 text-xs flex justify-between items-center"><span className="capitalize">{language}</span><button onClick={() => copyToClipboard(String(children))} title="Copy code">📋</button></div>
-                    <SyntaxHighlighter style={vscDarkPlus} language={language} PreTag="div" {...props}>{String(children).replace(/\n$/, '')}</SyntaxHighlighter>
-                </div>
-            );
-        }
-        return <code className="bg-gray-200 text-gray-800 px-1.5 py-0.5 rounded text-sm font-mono break-all" {...props}>{children}</code>;
-    };
-    const CustomLink: FC<any> = ({ href, children, ...props }) => {
-        // Renders links, handling special download links
-        const isDownloadLink = href && href.includes('/api/files/download/');
-        const handleDownload = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.preventDefault(); try { await chatService.downloadFile(href); } catch (error) { console.error("Error starting download from component.", error); }
-        };
-        if (isDownloadLink) {
-            return <a href={href} onClick={handleDownload} className="inline-flex items-center text-blue-600 hover:text-blue-800 underline break-all" {...props}><Download className="w-4 h-4 mr-1 flex-shrink-0" /><span className="break-all">{children}</span></a>;
-        }
-        return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 underline break-all inline-flex items-center gap-1" {...props}><ExternalLink className="w-3 h-3 flex-shrink-0" /><span className="break-all">{children}</span></a>;
-    };
-    // Combine all custom components for ReactMarkdown
-    const markdownComponents = { code: CodeBlock, a: CustomLink, ol: CustomOrderedList, ul: CustomUnorderedList, li: CustomListItem, p: CustomParagraph, strong: CustomStrong };
-
-    // =============================================================================
-    // MessageBubble Component (Receives Expansion State and Toggle Function)
-    // =============================================================================
-    const MessageBubble: FC<MessageBubbleProps> = ({ message, index, isReasoningExpanded, onToggleReasoning }) => {
-        const isUser = message.type === 'user';
-        const canReport = !isUser && message.recordId; // Can only report bot messages with a DB record ID
-
-        return (
-            <div className={`group flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-                {/* Message Bubble Styling */}
-                <div className={`max-w-4xl px-4 py-3 rounded-lg ${isUser ? 'bg-blue-600 text-white' : message.isError ? 'bg-red-50 text-red-900 border border-red-200' : 'bg-gray-100 text-gray-900'}`}>
-                    <div className="flex items-start space-x-3">
-                        {/* Sender Icon */}
-                        <div className="flex-shrink-0 mt-1">
-                            {isUser ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5 text-blue-600" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            {/* Message Content */}
-                            <div className="break-words">
-                                {isUser ? (
-                                    // Render user messages with URL handling
-                                    <div className="text-white leading-relaxed whitespace-pre-wrap">{renderTextWithUrls(message.content || '')}</div>
-                                ) : (
-                                    // Render bot messages using Markdown
-                                    <div className="prose prose-sm max-w-none">
-                                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents} urlTransform={urlTransform}>
-                                            {message.content || ''}
-                                        </ReactMarkdown>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Optional: Render Chart if present */}
-                            {message.type === 'bot' && message.chart && (
-                                <ChatMessageChart chartData={message.chart} />
-                            )}
-
-                            {/* Optional: Render Interactive Reasoning if present and user is IT */}
-                            {message.type === 'bot' && !message.isError && message.reasoningSteps && message.reasoningSteps.length > 0 && isItUser && (
-                                <InteractiveReasoning
-                                    steps={message.reasoningSteps}
-                                    isExpanded={isReasoningExpanded} // Pass down the expansion state
-                                    onToggle={onToggleReasoning} // Pass down the toggle function
-                                />
-                            )}
-
-                            {/* Footer: Report Button and Timestamp */}
-                            <div className="flex justify-between items-center mt-2">
-                                {canReport ? (
-                                    <button onClick={() => handleOpenReportModal(message)} className="flex items-center text-xs text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity" title="Report an issue with this response">
-                                        <Flag className="w-3 h-3 mr-1" /> Report issue
-                                    </button>
-                                ) : <div />} {/* Placeholder for alignment */}
-                                <p className={`text-xs ${isUser ? 'text-blue-200' : 'text-gray-500'}`}>{formatSmartTimestamp(message.timestamp)}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    // markdown helpers and MessageBubble hoisted above
 
     // --- Loading and Empty State Components (No Changes) ---
     const LoadingIndicator = () => (
@@ -387,6 +433,8 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
                             isReasoningExpanded={expandedReasoning[message.id] || false}
                             // Pass the toggle function specific to *this* message ID
                             onToggleReasoning={() => toggleReasoning(message.id)}
+                            isItUser={isItUser}
+                            onOpenReportModal={handleOpenReportModal}
                         />
                     ))}
                     {/* Show loading indicator if processing */}

@@ -20,6 +20,7 @@ export interface SchemaProperty {
     example?: any;
     defaultValue?: any;
     $ref?: string;
+    items?: SchemaProperty; // For array item schemas
 
     // Numeric validations
     minimum?: number;
@@ -111,7 +112,7 @@ export interface ApiDocument {
  * Represents a single endpoint.
  */
 export interface Endpoint {
-    _id?: string;
+    id?: string;
     path: string;
     method: string;
     summary?: string;

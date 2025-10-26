@@ -183,7 +183,16 @@ export const EndpointList: React.FC<{ api: ApiDocument }> = ({ api }) => {
                                     <div className="flex items-center p-3 cursor-pointer hover:bg-gray-50" onClick={() => toggleEndpoint(endpointId)}>
                                         <span className={`w-20 text-center font-bold text-sm py-1 rounded ${methodColors[endpoint.method] || 'bg-gray-500 text-white'}`}>{endpoint.method}</span>
                                         <span className="ml-4 font-mono text-sm flex-grow">{endpoint.path}</span>
-                                        <span className="text-sm text-gray-600 mx-4 hidden md:block">{endpoint.summary}</span>
+                                        <div className="mx-4 hidden md:flex items-center gap-3">
+                                            {endpoint.id && (
+                                                <div className="flex items-center gap-1 text-xs text-gray-600 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                    <code className="font-mono text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200">{endpoint.id}</code>
+                                                </div>
+                                            )}
+                                            {endpoint.summary && (
+                                                <span className="text-sm text-gray-600">{endpoint.summary}</span>
+                                            )}         
+                                        </div>
                                         <ChevronRight className={`transform transition-transform ${isExpanded ? 'rotate-90' : ''}`} size={20} />
                                     </div>
 
@@ -207,7 +216,7 @@ export const EndpointList: React.FC<{ api: ApiDocument }> = ({ api }) => {
                                                                     <div className="mt-2">
                                                                         <span className="text-xs font-semibold text-gray-500 mr-2">Allowed values:</span>
                                                                         <div className="flex items-center gap-2 flex-wrap mt-1">
-                                                                            {param.schema.enumValues.map((enumValue) => (
+                                                                            {param.schema.enumValues.map((enumValue: unknown) => (
                                                                                 <code key={String(enumValue)} className="text-xs bg-blue-50 text-blue-800 px-2 py-1 rounded font-mono">
                                                                                     {String(enumValue)}
                                                                                 </code>
