@@ -127,7 +127,13 @@ interface StreamCallbacks {
  */
 // Resolve API base URL similarly to axiosConfig so streaming works in prod and dev
 const ENV_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
-const API_BASE_URL = ENV_BASE ? ENV_BASE.replace(/\/+$/, '') : '';
+let API_BASE_URL = ENV_BASE ? ENV_BASE.replace(/\/+$/, '') : '';
+if (!API_BASE_URL && typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.vercel.app')) {
+        API_BASE_URL = 'https://alesqui-intelligence-backend.onrender.com';
+    }
+}
 
 class ChatService {
     private baseUrl = '/api/chat';

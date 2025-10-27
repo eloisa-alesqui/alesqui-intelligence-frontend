@@ -12,7 +12,16 @@ import axios, { AxiosInstance } from 'axios';
  * - In development, leave it undefined to use relative "/api" paths and Vite's proxy.
  */
 const ENV_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
-const API_BASE_URL = ENV_BASE ? ENV_BASE.replace(/\/+$/, '') : '';
+let API_BASE_URL = ENV_BASE ? ENV_BASE.replace(/\/+$/, '') : '';
+
+// Safety fallback: if running on Vercel and no env provided, default to Render backend
+if (!API_BASE_URL && typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.vercel.app')) {
+        API_BASE_URL = 'https://alesqui-intelligence-backend.onrender.com';
+        // Optional: console.info('Using default Render backend for Vercel domain');
+    }
+}
 
 const apiClient: AxiosInstance = axios.create({
     /**
