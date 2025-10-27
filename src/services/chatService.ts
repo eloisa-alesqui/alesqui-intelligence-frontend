@@ -125,6 +125,10 @@ interface StreamCallbacks {
  * This class handles the state of the current conversation (via conversationId)
  * and orchestrates the sending and receiving of messages to the chat API.
  */
+// Resolve API base URL similarly to axiosConfig so streaming works in prod and dev
+const ENV_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+const API_BASE_URL = ENV_BASE ? ENV_BASE.replace(/\/+$/, '') : '';
+
 class ChatService {
     private baseUrl = '/api/chat';
     private conversationId: string | null = null;
@@ -156,7 +160,10 @@ class ChatService {
 
         const token = localStorage.getItem('accessToken');
 
-        await fetchEventSource(`${this.baseUrl}/stream`, {
+    // Build absolute or relative URL for SSE, matching axios base strategy
+    const streamUrl = API_BASE_URL ? `${API_BASE_URL}${this.baseUrl}/stream` : `${this.baseUrl}/stream`;
+
+    await fetchEventSource(streamUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

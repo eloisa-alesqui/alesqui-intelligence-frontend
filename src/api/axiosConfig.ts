@@ -6,17 +6,23 @@ import axios, { AxiosInstance } from 'axios';
  * By using a single instance, we can apply global configurations like interceptors
  * to handle JWT authentication and error responses automatically for every API call.
  */
+/**
+ * Resolve API base URL from environment.
+ * - In production (Vercel), set VITE_API_BASE_URL to your backend origin, e.g. https://api.example.com
+ * - In development, leave it undefined to use relative "/api" paths and Vite's proxy.
+ */
+const ENV_BASE = (import.meta as any)?.env?.VITE_API_BASE_URL as string | undefined;
+const API_BASE_URL = ENV_BASE ? ENV_BASE.replace(/\/+$/, '') : '';
+
 const apiClient: AxiosInstance = axios.create({
     /**
      * The base URL for all API requests.
      *
-     * We explicitly set this to the backend server's address. This ensures that
-     * all requests made through this client, including regular API calls and
-     * file downloads, are sent directly to the correct server (localhost:8080),
-     * bypassing the Vite development server's proxy. This is the most reliable
-     * method to avoid host/port confusion.
+     * If not provided, Axios will use relative URLs (e.g., "/api/..."), which
+     * allows Vite's dev proxy to handle requests locally. In production, provide
+     * VITE_API_BASE_URL to target the deployed backend.
      */
-    baseURL: 'http://localhost:8080',
+    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     }

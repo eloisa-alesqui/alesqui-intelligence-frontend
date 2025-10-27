@@ -267,13 +267,13 @@ export const InteractiveReasoning: FC<InteractiveReasoningProps> = React.memo(({
                     <div ref={contentInnerRef} className="p-4 bg-blue-50/60 border border-blue-200 rounded-lg space-y-5">
                         {visibleSteps.map((step: ReasoningStep, stepIndex: number) => {
                             if (step.type === StepType.THOUGHT) {
-                                let thoughtText = step.textContent || '';
+                                let planText = step.textContent || '';
                                 let actionDescription = '';
-                                thoughtText = thoughtText.replace(/^Thought:\s*/i, '');
-                                const actIndex = thoughtText.search(/\s*Act:\s*/i);
+                                planText = planText.replace(/^Plan:\s*/i, '');
+                                const actIndex = planText.search(/\s*Act:\s*/i);
                                 if (actIndex !== -1) {
-                                    actionDescription = thoughtText.substring(actIndex + 4).trim();
-                                    thoughtText = thoughtText.substring(0, actIndex).trim();
+                                    actionDescription = planText.substring(actIndex + 6).trim();
+                                    planText = planText.substring(0, actIndex).trim();
                                     actionDescription = actionDescription.replace(/^t:\s*/i, '');
                                 }
 
@@ -281,10 +281,10 @@ export const InteractiveReasoning: FC<InteractiveReasoningProps> = React.memo(({
                                     <div key={step.id} className="thought-block">
                                         <div className="flex items-center mb-2 space-x-2">
                                             <span className="text-blue-600 text-lg">🎯</span>
-                                            <h4 className="text-sm font-semibold text-gray-700">Thought:</h4>
+                                            <h4 className="text-sm font-semibold text-gray-700">Plan:</h4>
                                         </div>
                                         <div className="pl-6 text-gray-700 text-sm italic border-l-2 border-blue-200 ml-2">
-                                            {thoughtText}
+                                            {planText}
                                         </div>
                                         {actionDescription && (
                                             <div className="tool-call-block mt-4">
