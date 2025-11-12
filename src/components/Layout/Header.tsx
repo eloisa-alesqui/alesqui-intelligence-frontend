@@ -28,10 +28,11 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     // Navigation items with their required roles.
     // If an item has no 'roles' property, it's visible to all authenticated users.
     const navItems = [
-        { id: 'setup', label: 'API Configuration', icon: FileText, to: '/setup', roles: ['ROLE_IT'] },
-        { id: 'apis', label: 'Configured APIs', icon: Database, to: '/apis', roles: ['ROLE_IT'] },
-        { id: 'diagnostics', label: 'Diagnostics', icon: ShieldAlert, to: '/diagnostics', roles: ['ROLE_IT'] },
-        { id: 'chat', label: 'Chat with APIs', icon: MessageCircle, to: '/chat' }
+        { id: 'setup', label: 'API Configuration', icon: FileText, to: '/setup', roles: ['ROLE_IT', 'ROLE_SUPERADMIN'] },
+        { id: 'apis', label: 'Configured APIs', icon: Database, to: '/apis', roles: ['ROLE_IT', 'ROLE_SUPERADMIN'] },
+        { id: 'diagnostics', label: 'Diagnostics', icon: ShieldAlert, to: '/diagnostics', roles: ['ROLE_IT', 'ROLE_SUPERADMIN'] },
+        { id: 'chat', label: 'Chat with APIs', icon: MessageCircle, to: '/chat' },
+        { id: 'admin', label: 'Administration', icon: Bot, to: '/admin/groups', roles: ['ROLE_SUPERADMIN'] }
     ];
 
     // Filter the navigation items based on the user's roles.

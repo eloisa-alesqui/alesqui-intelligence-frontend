@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Send, Loader2, Brain } from 'lucide-react';
-import { ApiDocument } from '../../services/apiService';
+import { ApiDocument } from '../../types';
 
 // Define the types for the component's props
 interface ChatInputProps {

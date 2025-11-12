@@ -11,6 +11,11 @@ import ApiList from './components/ApiDetails/ApiList';
 import ManageApiPage from './components/ApiDetails/ManageApiPage';
 import ChatTab from './components/Chat/ChatTab';
 import DiagnosticsTab from './components/Diagnostics/DiagnosticsTab';
+import AdminLayout from './components/Admin/AdminLayout';
+import GroupList from './components/Admin/Groups/GroupList';
+import GroupDetail from './components/Admin/Groups/GroupDetail';
+import UserList from './components/Admin/Users/UserList';
+import UserDetail from './components/Admin/Users/UserDetail';
 
 /**
  * The main application component.
@@ -39,11 +44,21 @@ const AlesquiIntelligenceApp: React.FC = () => {
                     {/* --- Group 2: Routes that require the 'ROLE_IT' role --- */}
                     {/* We pass the required role to this ProtectedRoute. */}
                     {/* The component will handle both authentication and role validation. */}
-                    <Route element={<ProtectedRoute roles={['ROLE_IT']} />}>
+                    <Route element={<ProtectedRoute roles={['ROLE_IT', 'ROLE_SUPERADMIN']} />}>
                         <Route path="/setup" element={<SetupTab />} />
                         <Route path="/apis" element={<ApiList />} />
                         <Route path="/apis/:apiId" element={<ManageApiPage />} />
                         <Route path="/diagnostics" element={<DiagnosticsTab />} />
+                    </Route>
+
+                    {/* Administration module (SUPERADMIN only) */}
+                    <Route element={<ProtectedRoute roles={['ROLE_SUPERADMIN']} />}>
+                        <Route path="/admin" element={<AdminLayout />}> 
+                            <Route path="groups" element={<GroupList />} />
+                            <Route path="groups/:groupId" element={<GroupDetail />} />
+                            <Route path="users" element={<UserList />} />
+                            <Route path="users/:userId" element={<UserDetail />} />
+                        </Route>
                     </Route>
 
                 </Route>
