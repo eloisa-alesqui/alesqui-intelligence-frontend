@@ -4,7 +4,7 @@ import { adminService, AdminUser } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 import CreateUserModal from './CreateUserModal';
-import { Loader2, AlertCircle, Inbox, Mail, Search, Plus, ChevronUp, ChevronDown, Trash2, Shield } from 'lucide-react';
+import { Loader2, AlertCircle, Inbox, Mail, Search, Plus, ChevronUp, ChevronDown, Trash2, Shield, CheckCircle } from 'lucide-react';
 
 const UserList: React.FC = () => {
     const { addNotification } = useNotifications();
@@ -180,6 +180,7 @@ const UserList: React.FC = () => {
                                 </div>
                             </th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roles</th>
+                            <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Groups</th>
                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
                             <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
@@ -193,7 +194,7 @@ const UserList: React.FC = () => {
                                         <Mail className="w-4 h-4 text-gray-400" />
                                         {u.username}
                                         {isCurrentUser(u) && (
-                                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded border border-green-200">(You)</span>
+                                            <span className="text-xs bg-rose-100 text-rose-800 px-2 py-0.5 rounded border border-rose-200">(You)</span>
                                         )}
                                     </div>
                                 </td>
@@ -205,6 +206,19 @@ const UserList: React.FC = () => {
                                             </span>
                                         ))}
                                     </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                    {u.isActive ? (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border bg-green-100 text-green-800 border-green-200">
+                                            <CheckCircle className="w-3 h-3" />
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border bg-amber-100 text-amber-800 border-amber-200">
+                                            <AlertCircle className="w-3 h-3" />
+                                            Pending
+                                        </span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-center">{u.groupCount ?? 0}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>

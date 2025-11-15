@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { adminService } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { X, Loader2, AlertCircle, Users, Tag, FileText } from 'lucide-react';
 
 interface Props {
   onClose: () => void;
@@ -14,27 +14,45 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ code?: string; name?: string }>({});
 
-  const validCode = /^[a-z0-9-]+$/.test(code); // slug rule
+  const validateCode = (code: string): string | null => {
+    if (!code.trim()) return 'Code is required';
+    if (!/^[a-z0-9-]+$/.test(code)) return 'Only lowercase letters, numbers and dashes are allowed';
+    return null;
+  };
+
+  const validate = (): boolean => {
+    const newErrors: typeof errors = {};
+
+    const codeError = validateCode(code);
+    if (codeError) {
+      newErrors.code = codeError;
+    }
+
+    if (!name.trim()) {
+      newErrors.name = 'Name is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validCode) {
-      setError('The code must use lowercase letters, numbers or dashes (no spaces).');
-      return;
-    }
+    
+    if (!validate()) return;
+
     try {
       setSubmitting(true);
-      setError(null);
-      await adminService.createGroup({ code, name, description });
-      addNotification('Group created', 'success');
+      await adminService.createGroup({ code: code.trim(), name: name.trim(), description: description.trim() });
+      addNotification('Group created successfully', 'success');
       onCreated();
     } catch (err: any) {
       if (err?.response?.data?.message?.includes('already exists')) {
-        setError('The code already exists.');
+        setErrors({ code: 'This code already exists' });
       } else {
-        setError(err.message || 'Error creating group');
+        addNotification(err.message || 'Error creating group', 'error');
       }
     } finally {
       setSubmitting(false);
@@ -42,81 +60,129 @@ const CreateGroupModal: React.FC<Props> = ({ onClose, onCreated }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
-      <div className="bg-white w-full max-w-lg rounded-lg shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white w-full max-w-lg rounded-lg shadow-xl border border-gray-200 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <div>
-            <h2 className="text-lg font-bold text-gray-900">Create Group</h2>
-            <p className="text-sm text-gray-500">Define slug, name and description</p>
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            <h3 className="text-xl font-semibold text-gray-900">Create New Group</h3>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full text-gray-400 hover:bg-gray-100">
+          <button 
+            onClick={onClose}
+            disabled={submitting}
+            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            aria-label="Close"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 bg-gray-50 space-y-4">
-          {error && (
-            <div className="bg-red-50 text-red-800 p-3 rounded-lg flex items-center border border-red-200">
-              <AlertCircle className="w-4 h-4 mr-2" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Code Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Code (unique slug)</label>
+            <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <Tag className="w-4 h-4 inline mr-1.5" />
+              Code (unique)
+            </label>
             <input
+              id="code"
+              type="text"
               value={code}
-              onChange={e => setCode(e.target.value.trim())}
-              className={`w-full border rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 ${code && !validCode ? 'border-red-300' : 'border-gray-300'}`}
+              onChange={e => {
+                setCode(e.target.value.trim());
+                setErrors(prev => ({ ...prev, code: undefined }));
+              }}
+              disabled={submitting}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
+                errors.code 
+                  ? 'border-red-300 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              } disabled:bg-gray-50 disabled:cursor-not-allowed`}
               placeholder="analytics"
+              autoComplete="off"
             />
-            {!validCode && code && (
-              <p className="text-xs text-red-600 mt-1">Only lowercase, numbers and dashes are allowed.</p>
+            {errors.code && (
+              <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {errors.code}
+              </p>
+            )}
+            {!errors.code && code && (
+              <p className="mt-1.5 text-xs text-gray-500">
+                Use lowercase letters, numbers and dashes only
+              </p>
             )}
           </div>
 
+          {/* Name Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <Users className="w-4 h-4 inline mr-1.5" />
+              Name
+            </label>
             <input
+              id="name"
+              type="text"
               value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Analytics"
+              onChange={e => {
+                setName(e.target.value);
+                setErrors(prev => ({ ...prev, name: undefined }));
+              }}
+              disabled={submitting}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${
+                errors.name 
+                  ? 'border-red-300 focus:ring-red-500' 
+                  : 'border-gray-300 focus:ring-blue-500'
+              } disabled:bg-gray-50 disabled:cursor-not-allowed`}
+              placeholder="Analytics Team"
+              autoComplete="off"
             />
+            {errors.name && (
+              <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5" />
+                {errors.name}
+              </p>
+            )}
           </div>
 
+          {/* Description Field */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1.5">
+              <FileText className="w-4 h-4 inline mr-1.5" />
+              Description (optional)
+            </label>
             <textarea
+              id="description"
               value={description}
               onChange={e => setDescription(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+              disabled={submitting}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed"
               rows={3}
-              placeholder="Optional details about the group"
+              placeholder="Optional details about this group..."
             />
           </div>
-        </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-gray-200 bg-white flex justify-end gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm bg-gray-100 hover:bg-gray-200"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit as any}
-            disabled={submitting || !code || !name || !validCode}
-            className="px-4 py-2 rounded-lg text-sm bg-blue-600 text-white disabled:opacity-50 flex items-center justify-center gap-2 hover:bg-blue-700"
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-            {submitting ? 'Creating...' : 'Create'}
-          </button>
-        </div>
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={submitting}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              Create Group
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

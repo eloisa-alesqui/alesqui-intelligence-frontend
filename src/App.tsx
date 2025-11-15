@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import LoginPage from './pages/LoginPage';
+import ActivateAccountPage from './pages/ActivateAccountPage';
 import AppLayout from './components/Layout/AppLayout';
 import ProtectedRoute from './components/Security/ProtectedRoute';
 import UnauthorizedPage from './pages/UnauthorizedPage'; 
@@ -28,6 +29,7 @@ const AlesquiIntelligenceApp: React.FC = () => {
             <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/activate-account" element={<ActivateAccountPage />} />
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
                 {/* Wrap all protected routes within the main AppLayout */}

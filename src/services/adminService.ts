@@ -23,11 +23,12 @@ export interface AdminUser {
     roles: string[];
     createdAt?: string;
     groupCount?: number; // derived count
+    isActive?: boolean; // activation status
 }
 
 export interface CreateUserRequest {
     username: string; // email
-    password: string;
+    password?: string; // Optional - for activation flow, password is set later
     roles: string[];
 }
 
