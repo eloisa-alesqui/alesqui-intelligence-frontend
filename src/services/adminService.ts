@@ -7,8 +7,8 @@ export interface AdminGroup {
     name: string;
     description?: string;
     createdAt?: string;
-    apiCount?: number; // derived (mock)
-    userCount?: number; // derived (mock)
+    apiCount?: number; 
+    userCount?: number; 
 }
 
 export interface CreateGroupRequest { code: string; name: string; description?: string; }
@@ -17,13 +17,13 @@ export interface AssignApisRequest { apiIds: string[]; }
 export interface AssignUsersRequest { userIds: string[]; }
 export interface ReplaceRolesRequest { roles: string[]; }
 
-export interface AdminUser {
+export interface User {
     id: string;
     username: string; // email address
     roles: string[];
     createdAt?: string;
-    groupCount?: number; // derived count
-    isActive?: boolean; // activation status
+    groupCount?: number; 
+    active?: boolean;
 }
 
 export interface CreateUserRequest {
@@ -47,7 +47,7 @@ export interface UserDetailResponse {
     groups: GroupSummaryResponse[];
 }
 
-export interface UserDetail extends AdminUser {
+export interface UserDetail extends User {
     groups: AdminGroup[];
 }
 
@@ -141,8 +141,8 @@ class AdminService {
     async removeApiFromGroup(groupId: string, apiId: string): Promise<void> {
         await apiClient.delete(`${this.base}/groups/${groupId}/apis/${apiId}`);
     }
-    async replaceUserRoles(userId: string, body: ReplaceRolesRequest): Promise<AdminUser> {
-        const { data } = await apiClient.patch<AdminUser>(`${this.base}/users/${userId}/roles`, body);
+    async replaceUserRoles(userId: string, body: ReplaceRolesRequest): Promise<User> {
+        const { data } = await apiClient.patch<User>(`${this.base}/users/${userId}/roles`, body);
         return data;
     }
 
@@ -169,8 +169,8 @@ class AdminService {
         return (data || []).map(u => ({ id: u.id, username: u.username, roles: u.roles }));
     }
 
-    async listAllUsers(): Promise<AdminUser[]> {
-        const { data } = await apiClient.get<AdminUser[]>(`${this.base}/users`);
+    async listAllUsers(): Promise<User[]> {
+        const { data } = await apiClient.get<User[]>(`${this.base}/users`);
         return data;
     }
 
@@ -186,13 +186,13 @@ class AdminService {
         };
     }
 
-    async createUser(body: CreateUserRequest): Promise<AdminUser> {
-        const { data } = await apiClient.post<AdminUser>(`${this.base}/users`, body);
+    async createUser(body: CreateUserRequest): Promise<User> {
+        const { data } = await apiClient.post<User>(`${this.base}/users`, body);
         return data;
     }
 
-    async updateUser(userId: string, body: UpdateUserRequest): Promise<AdminUser> {
-        const { data } = await apiClient.patch<AdminUser>(`${this.base}/users/${userId}`, body);
+    async updateUser(userId: string, body: UpdateUserRequest): Promise<User> {
+        const { data } = await apiClient.patch<User>(`${this.base}/users/${userId}`, body);
         return data;
     }
 

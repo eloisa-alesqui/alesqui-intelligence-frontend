@@ -29,7 +29,7 @@ interface ChatMessagesProps {
     configuredApis: any[]; // List of configured APIs (used for empty state)
     isLoading: boolean; // Flag if the bot is currently processing
     statusMessage: string | null; // Real-time status update text
-    isItUser: boolean; // Flag if the logged-in user has an IT role
+    hasTechnicalAccess: boolean; // Flag if the user has technical access (IT, SUPERADMIN, or TRIAL role)
 }
 
 // Props for the ReportIssueModal component
@@ -66,7 +66,7 @@ interface MessageBubbleProps {
     index: number;
     isReasoningExpanded: boolean; // Controlled by parent
     onToggleReasoning: () => void; // Function provided by parent
-    isItUser: boolean;
+    hasTechnicalAccess: boolean;
     onOpenReportModal: (message: ChatMessageForRender) => void;
 }
 
@@ -136,7 +136,7 @@ const markdownComponents = { code: CodeBlock, a: CustomLink, ol: CustomOrderedLi
 // =============================================================================
 // MessageBubble Component (hoisted to module scope to avoid remounts)
 // =============================================================================
-const MessageBubble: FC<MessageBubbleProps> = ({ message, index, isReasoningExpanded, onToggleReasoning, isItUser, onOpenReportModal }) => {
+const MessageBubble: FC<MessageBubbleProps> = ({ message, index, isReasoningExpanded, onToggleReasoning, hasTechnicalAccess, onOpenReportModal }) => {
     const isUser = message.type === 'user';
     const canReport = !isUser && message.recordId; // Can only report bot messages with a DB record ID
     const [copied, setCopied] = useState(false);
@@ -195,8 +195,8 @@ const MessageBubble: FC<MessageBubbleProps> = ({ message, index, isReasoningExpa
                             <ChatMessageChart chartData={message.chart} />
                         )}
 
-                        {/* Optional: Render Interactive Reasoning if present and user is IT */}
-                        {message.type === 'bot' && !message.isError && message.reasoningSteps && message.reasoningSteps.length > 0 && isItUser && (
+                        {/* Optional: Render Interactive Reasoning if present and user has technical access */}
+                        {message.type === 'bot' && !message.isError && message.reasoningSteps && message.reasoningSteps.length > 0 && hasTechnicalAccess && (
                             <InteractiveReasoning
                                 steps={message.reasoningSteps}
                                 isExpanded={isReasoningExpanded} // Pass down the expansion state
@@ -324,7 +324,7 @@ const ReportIssueModal: FC<ReportIssueModalProps> = ({ isOpen, onClose, onSubmit
 // =============================================================================
 // Main ChatMessages Component (Manages Expansion State)
 // =============================================================================
-const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isLoading, statusMessage, isItUser }) => {
+const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isLoading, statusMessage, hasTechnicalAccess }) => {
     // Refs for scrolling
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -381,7 +381,7 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
         <div className="flex justify-start"><div className="bg-gray-100 rounded-lg px-4 py-3 max-w-md"><div className="flex items-center space-x-3"><div className="relative flex items-center justify-center w-8 h-8"><Bot className="w-5 h-5 text-blue-700 z-10 relative" /><div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-6 border-2 border-blue-400 rounded-full animate-ping opacity-80"></div></div><div className="absolute inset-0 flex items-center justify-center"><div className="w-6 h-6 border border-blue-300 rounded-full animate-ping opacity-60" style={{ animationDelay: '0.6s', animationDuration: '1.5s' }}></div></div></div><span className="text-sm text-gray-600">{statusMessage || 'Thinking...'}</span></div></div></div>
     );
     const EmptyState = () => (
-        <div className="text-center text-gray-500 mt-8"><Bot className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p className="text-base font-medium">Hello! I'm your AI assistant.</p><p className="text-sm mt-1">{isItUser ? "Ask me about your configured APIs." : "Ask me about your available data."}</p>{configuredApis.length === 0 && (<div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg inline-flex"><AlertCircle className="w-4 h-4 text-yellow-600 mr-2" /><p className="text-xs text-yellow-700">{isItUser ? "Configure some APIs first to start chatting!" : "Data sources are not available yet."}</p></div>)}</div>
+        <div className="text-center text-gray-500 mt-8"><Bot className="w-12 h-12 mx-auto mb-4 text-gray-300" /><p className="text-base font-medium">Hello! I'm your AI assistant.</p><p className="text-sm mt-1">{hasTechnicalAccess ? "Ask me about your configured APIs." : "Ask me about your available data."}</p>{configuredApis.length === 0 && (<div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg inline-flex"><AlertCircle className="w-4 h-4 text-yellow-600 mr-2" /><p className="text-xs text-yellow-700">{hasTechnicalAccess ? "Configure some APIs first to start chatting!" : "Data sources are not available yet."}</p></div>)}</div>
     );
 
     // --- Auto-scroll Effect ---
@@ -433,7 +433,7 @@ const ChatMessages: FC<ChatMessagesProps> = ({ chatMessages, configuredApis, isL
                             isReasoningExpanded={expandedReasoning[message.id] || false}
                             // Pass the toggle function specific to *this* message ID
                             onToggleReasoning={() => toggleReasoning(message.id)}
-                            isItUser={isItUser}
+                            hasTechnicalAccess={hasTechnicalAccess}
                             onOpenReportModal={handleOpenReportModal}
                         />
                     ))}

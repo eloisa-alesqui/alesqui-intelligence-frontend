@@ -87,6 +87,33 @@ const ChatTab: React.FC = () => {
     );
 
     /**
+     * A memoized value to determine if the current user has an SUPERADMIN role.
+     * This is used to conditionally render UI elements like the "reasoning" checkbox.
+     */
+    const isSuperadminUser = useMemo(() =>
+        user?.authorities?.includes('ROLE_SUPERADMIN') ?? false,
+        [user]
+    );
+
+    /**
+     * A memoized value to determine if the current user has an TRIAL role.
+     * This is used to conditionally render UI elements like the "reasoning" checkbox.
+     */
+    const isTrialUser = useMemo(() =>
+        user?.authorities?.includes('ROLE_TRIAL') ?? false,
+        [user]
+    );
+
+    /**
+     * A combined memoized value to determine if the user should have access to technical features.
+     * Users with IT, SUPERADMIN, or TRIAL roles get access to advanced capabilities.
+     */
+    const hasTechnicalAccess = useMemo(() =>
+        isItUser || isSuperadminUser || isTrialUser,
+        [isItUser, isSuperadminUser, isTrialUser]
+    );  
+
+    /**
      * A memoized transformation of chat messages to ensure their IDs are strings,
      * which is a requirement for the keys in React's list rendering.
      */
@@ -122,10 +149,10 @@ const ChatTab: React.FC = () => {
                             <div>
                                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                                     <Bot className="w-5 h-5 mr-2 text-blue-600" />
-                                    {isItUser ? "Chat with your APIs" : "Ask about your data"}
+                                    {hasTechnicalAccess ? "Chat with your APIs" : "Ask about your data"}
                                 </h3>
                                 <p className="text-sm text-gray-600">
-                                    {isItUser ? `Ask anything about your configured APIs (${configuredApis.length} available)` : "Ask any question about the available data sources"}
+                                    {hasTechnicalAccess ? `Ask anything about your configured APIs (${configuredApis.length} available)` : "Ask any question about the available data sources"}
                                 </p>
                             </div>
                             {chatMessages.length > 0 && (
@@ -142,7 +169,7 @@ const ChatTab: React.FC = () => {
 
                     <ChatMessages
                         chatMessages={formattedChatMessages}
-                        isItUser={isItUser}
+                        hasTechnicalAccess={hasTechnicalAccess}
                         configuredApis={configuredApis}
                         isLoading={isLoading}
                         statusMessage={statusMessage}
@@ -157,7 +184,7 @@ const ChatTab: React.FC = () => {
                             isLoading={isLoading}
                             includeReasoning={includeReasoning}
                             onReasoningChange={setIncludeReasoning}
-                            isItUser={isItUser}
+                            hasTechnicalAccess={hasTechnicalAccess}
                         />
                     </div>
                 </div>
@@ -167,7 +194,7 @@ const ChatTab: React.FC = () => {
                     <AssistantCapabilities
                         configuredApis={configuredApis}
                         onExampleClick={handleExampleQuery}
-                        isItUser={isItUser}
+                        hasTechnicalAccess={hasTechnicalAccess}
                     />
                 </div>
             </div>

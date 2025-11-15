@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminService, AdminUser } from '../../../services/adminService';
+import { adminService, User } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
 import CreateUserModal from './CreateUserModal';
@@ -10,7 +10,7 @@ const UserList: React.FC = () => {
     const { addNotification } = useNotifications();
     const { user: currentUser } = useAuth();
     const navigate = useNavigate();
-    const [users, setUsers] = useState<AdminUser[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [filterText, setFilterText] = useState('');
@@ -22,7 +22,7 @@ const UserList: React.FC = () => {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState('');
     const [deleting, setDeleting] = useState(false);
-    const [userToDelete, setUserToDelete] = useState<AdminUser | null>(null);
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
     const load = async () => {
         try {
@@ -63,20 +63,20 @@ const UserList: React.FC = () => {
         return sorted;
     }, [users, filterText, roleFilter, emailSortDir]);
 
-    const isCurrentUser = (user: AdminUser) => {
+    const isCurrentUser = (user: User) => {
         return currentUser?.sub === user.username;
     };
 
-    const isLastAdmin = (user: AdminUser) => {
+    const isLastAdmin = (user: User) => {
         const superAdminUsers = users.filter(u => u.roles.includes('ROLE_SUPERADMIN'));
         return user.roles.includes('ROLE_SUPERADMIN') && superAdminUsers.length <= 1;
     };
 
-    const canDelete = (user: AdminUser) => {
+    const canDelete = (user: User) => {
         return !isCurrentUser(user) && !isLastAdmin(user);
     };
 
-    const openDeleteModal = (u: AdminUser) => {
+    const openDeleteModal = (u: User) => {
         setUserToDelete(u);
         setDeleteOpen(true);
     };
@@ -208,7 +208,7 @@ const UserList: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                    {u.isActive ? (
+                                    {u.active ? (
                                         <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded border bg-green-100 text-green-800 border-green-200">
                                             <CheckCircle className="w-3 h-3" />
                                             Active

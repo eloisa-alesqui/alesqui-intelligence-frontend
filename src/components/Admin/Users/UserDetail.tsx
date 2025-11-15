@@ -510,28 +510,6 @@ const UserDetail: React.FC = () => {
                             </p>
                         )}
                     </div>
-
-                    <div className="border-t pt-6">
-                        <h4 className="font-semibold text-gray-900 mb-2">Role Permissions</h4>
-                        <ul className="space-y-2 text-sm text-gray-600">
-                            <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                                <span><strong>Super Admin:</strong> Full system access, user management, and configuration</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                                <span><strong>IT:</strong> API configuration, diagnostics, and technical management</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                                <span><strong>Business:</strong> Business user access to APIs based on group membership</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5" />
-                                <span><strong>Trial:</strong> Limited trial access to the system</span>
-                            </li>
-                        </ul>
-                    </div>
                 </div>
             )}
 

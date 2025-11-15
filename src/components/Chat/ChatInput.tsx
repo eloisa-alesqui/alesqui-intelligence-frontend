@@ -11,7 +11,7 @@ interface ChatInputProps {
     isLoading: boolean;
     includeReasoning: boolean;
     onReasoningChange: (include: boolean) => void;
-    isItUser: boolean; // Prop to determine if the user has an IT role
+    hasTechnicalAccess: boolean; // Prop to determine if the user has technical access (IT, SUPERADMIN, or TRIAL role)
 }
 
 const ChatInput: React.FC<ChatInputProps> = ({
@@ -22,7 +22,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     isLoading,
     includeReasoning,
     onReasoningChange,
-    isItUser,
+    hasTechnicalAccess,
 }) => {
     const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -47,7 +47,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
     };
 
     const isDisabled = configuredApis.length === 0 || isLoading;
-    const placeholder = isItUser
+    const placeholder = hasTechnicalAccess
         ? (configuredApis.length > 0 ? "Ask about your APIs... (Press Enter to send)" : "Configure APIs first to start chatting")
         : (configuredApis.length > 0 ? "Ask about your data... (Press Enter to send)" : "Data sources are not available yet");
 
@@ -78,7 +78,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     type="submit"
                     disabled={isDisabled || !currentMessage.trim()}
                     className="flex-shrink-0 px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 bg-blue-600 hover:bg-blue-700"
-                    title={isDisabled ? (isItUser ? "Configure APIs first" : "Data not available") : "Send message"}
+                    title={isDisabled ? (hasTechnicalAccess ? "Configure APIs first" : "Data not available") : "Send message"}
                 >
                     {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -87,8 +87,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
             </form>
 
             <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-                {/* Conditionally render the reasoning checkbox only for IT users */}
-                {isItUser ? (
+                {/* Conditionally render the reasoning checkbox only for users with technical access */}
+                {hasTechnicalAccess ? (
                     <label 
                         htmlFor="includeReasoning" 
                         className="flex items-center space-x-2 cursor-pointer text-gray-600 hover:text-gray-900 transition-colors"
@@ -109,7 +109,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 <span>
                     {configuredApis.length > 0
                         ? `${configuredApis.length} source${configuredApis.length !== 1 ? 's' : ''} available`
-                        : (isItUser ? "No APIs configured" : "No data sources available")}
+                        : (hasTechnicalAccess ? "No APIs configured" : "No data sources available")}
                 </span>
                 <span className="hidden sm:block">
                     Press Enter to send • Shift+Enter for new line
