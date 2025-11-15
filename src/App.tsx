@@ -43,10 +43,10 @@ const AlesquiIntelligenceApp: React.FC = () => {
                         <Route path="/chat" element={<ChatTab />} />
                     </Route>
 
-                    {/* --- Group 2: Routes that require the 'ROLE_IT' role --- */}
+                    {/* --- Group 2: Routes that require the 'ROLE_IT', 'ROLE_SUPERADMIN' or 'ROLE_TRIAL' role --- */}
                     {/* We pass the required role to this ProtectedRoute. */}
                     {/* The component will handle both authentication and role validation. */}
-                    <Route element={<ProtectedRoute roles={['ROLE_IT', 'ROLE_SUPERADMIN']} />}>
+                    <Route element={<ProtectedRoute roles={['ROLE_IT', 'ROLE_SUPERADMIN', 'ROLE_TRIAL']} />}>
                         <Route path="/setup" element={<SetupTab />} />
                         <Route path="/apis" element={<ApiList />} />
                         <Route path="/apis/:apiId" element={<ManageApiPage />} />
