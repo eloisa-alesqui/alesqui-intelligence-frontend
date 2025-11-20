@@ -1,7 +1,7 @@
 import apiClient from '../api/axiosConfig';
 
 // ---- Types ----
-export interface AdminGroup {
+export interface Group {
     id: string;
     code: string;
     name: string;
@@ -48,13 +48,13 @@ export interface UserDetailResponse {
 }
 
 export interface UserDetail extends User {
-    groups: AdminGroup[];
+    groups: Group[];
 }
 
 export interface ApiSummary { id: string; name: string; description?: string; active: boolean; version?: string; tags?: string[]; isPublic?: boolean; }
 export interface UserSummary { id: string; username: string; roles: string[]; }
 
-export interface GroupDetail extends AdminGroup {
+export interface GroupDetail extends Group {
     apis: ApiSummary[];
     users: UserSummary[];
 }
@@ -91,7 +91,7 @@ export interface GroupDetailResponse extends GroupSummaryResponse {
 class AdminService {
     private base = '/api/admin';
 
-    private mapGroupSummary(r: GroupSummaryResponse): AdminGroup {
+    private mapGroupSummary(r: GroupSummaryResponse): Group {
         return {
             id: r.id,
             code: r.code,
@@ -116,12 +116,12 @@ class AdminService {
     }
 
     // Implemented endpoints
-    async createGroup(body: CreateGroupRequest): Promise<AdminGroup> {
-        const { data } = await apiClient.post<AdminGroup>(`${this.base}/groups`, body);
+    async createGroup(body: CreateGroupRequest): Promise<Group> {
+        const { data } = await apiClient.post<Group>(`${this.base}/groups`, body);
         return data;
     }
-    async updateGroup(groupId: string, body: UpdateGroupRequest): Promise<AdminGroup> {
-        const { data } = await apiClient.patch<AdminGroup>(`${this.base}/groups/${groupId}`, body);
+    async updateGroup(groupId: string, body: UpdateGroupRequest): Promise<Group> {
+        const { data } = await apiClient.patch<Group>(`${this.base}/groups/${groupId}`, body);
         return data;
     }
     async deleteGroup(groupId: string): Promise<void> {
@@ -146,7 +146,7 @@ class AdminService {
         return data;
     }
 
-    async listGroups(): Promise<AdminGroup[]> {
+    async listGroups(): Promise<Group[]> {
         const { data } = await apiClient.get<GroupSummaryResponse[]>(`${this.base}/groups`);
         return data.map(this.mapGroupSummary);
     }
@@ -211,6 +211,25 @@ class AdminService {
     async countAdminUsers(): Promise<number> {
         const { data } = await apiClient.get<{ count: number }>(`${this.base}/users/count/admins`);
         return data.count;
+    }
+
+    async getCurrentUserGroups(): Promise<Group[]> {
+        const { data } = await apiClient.get<GroupSummaryResponse[]>('/api/me/groups');
+        return data.map(this.mapGroupSummary);
+    }
+
+    async assignApiToGroups(apiId: string, groupIds: string[]): Promise<void> {
+        await apiClient.post(`${this.base}/apis/${apiId}/groups`, { groupIds });
+    }
+
+    async getApiGroups(apiId: string): Promise<Group[]> {
+        try {
+            const { data } = await apiClient.get<GroupSummaryResponse[]>(`${this.base}/apis/${apiId}/groups`);
+            return data.map(this.mapGroupSummary);
+        } catch (error) {
+            console.error(`Error fetching groups for API ${apiId}:`, error);
+            return [];
+        }
     }
 }
 

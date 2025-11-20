@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNotifications, NotificationType } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { apiUnificationService } from '../services/apiUnificationService';
 import { swaggerService } from '../services/swaggerService';
 import { postmanService } from '../services/postmanService';
+import { adminService, Group } from '../services/adminService';
 import { ApiConfig, ApiFormState } from '../types';
 
 // ================================================================================================
@@ -64,9 +65,38 @@ export const useApiForm = ({ onApiConfigured }: UseApiFormProps) => {
     const [apiConfig, setApiConfig] = useState<ApiConfig>(initialApiConfiguration);
     const [currentStep, setCurrentStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
+    const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
+    const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
     const swaggerFileRef = useRef<HTMLInputElement>(null);
     const postmanFileRef = useRef<HTMLInputElement>(null);
+
+    // Load available groups based on user role
+    useEffect(() => {
+        const loadGroups = async () => {
+            if (!user) return;
+            
+            try {
+                const isSuperAdmin = user.authorities.includes('ROLE_SUPERADMIN');
+                const isIT = user.authorities.includes('ROLE_IT');
+                
+                if (isSuperAdmin) {
+                    // SUPERADMIN can see all groups
+                    const groups = await adminService.listGroups();
+                    setAvailableGroups(groups);
+                } else if (isIT) {
+                    // IT can see only their groups
+                    const groups = await adminService.getCurrentUserGroups();
+                    setAvailableGroups(groups);
+                }
+                // TRIAL does not need to load groups (automatic assignment)
+            } catch (error) {
+                console.error('Error loading groups:', error);
+            }
+        };
+        
+        loadGroups();
+    }, [user]);
 
     const updateForm = (updates: Partial<ApiFormState>) => {
         setApiForm(prev => ({ ...prev, ...updates }));
@@ -169,8 +199,37 @@ export const useApiForm = ({ onApiConfigured }: UseApiFormProps) => {
         try {
             const updatedDocument = await apiUnificationService.updateConfiguration(apiForm.name, apiConfig);
             addNotification(`Configuration for '${apiForm.name}' saved successfully`, 'success');
+            
+            // Assign the API to the selected groups
+            if (updatedDocument.id) {
+                const isTrial = user?.authorities.includes('ROLE_TRIAL');
+                
+                if (isTrial) {
+                    // For TRIAL, automatically assign to the user's group
+                    try {
+                        const userGroups = await adminService.getCurrentUserGroups();
+                        if (userGroups.length > 0) {
+                            await adminService.assignApiToGroups(updatedDocument.id, [userGroups[0].id]);
+                        }
+                    } catch (error) {
+                        console.error('Error auto-assigning API to user group:', error);
+                        addNotification('API configured but could not be assigned to your group automatically', 'warning');
+                    }
+                } else if (selectedGroupIds.length > 0) {
+                    // For IT and SUPERADMIN, assign to selected groups
+                    try {
+                        await adminService.assignApiToGroups(updatedDocument.id, selectedGroupIds);
+                        addNotification(`API assigned to ${selectedGroupIds.length} group(s)`, 'success');
+                    } catch (error) {
+                        console.error('Error assigning API to groups:', error);
+                        addNotification('API configured but could not be assigned to selected groups', 'warning');
+                    }
+                }
+            }
+            
             onApiConfigured(updatedDocument);
             resetForm();
+            setSelectedGroupIds([]);
             addNotification('API setup complete! You can now start chatting.', 'info');
         } catch (error: any) {
             addNotification(`Error saving configuration: ${error.message}`, 'error');
@@ -194,5 +253,8 @@ export const useApiForm = ({ onApiConfigured }: UseApiFormProps) => {
         handleUnifyAPI,
         handleSaveConfiguration,
         handleSkipPostman: () => setCurrentStep(3),
+        availableGroups,
+        selectedGroupIds,
+        setSelectedGroupIds,
     };
 };

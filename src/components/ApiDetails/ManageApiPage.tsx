@@ -4,6 +4,8 @@ import { apiService } from '../../services/apiService';
 import { ApiDocument } from '../../types';
 import ConfigurationStep from '../Setup/ConfigurationStep'; 
 import { useNotifications } from '../../context/NotificationContext';
+import { useAuth } from '../../context/AuthContext';
+import { adminService, Group } from '../../services/adminService';
 import Tabs from '../Common/Tabs';
 import ApiDetailsTab from '../ApiDetails/ApiDetailsTab';
 
@@ -11,10 +13,14 @@ const ManageApiPage: React.FC = () => {
     const navigate = useNavigate();
     const { apiId } = useParams<{ apiId: string }>(); 
     const { addNotification } = useNotifications();
+    const { user } = useAuth();
     const [api, setApi] = useState<ApiDocument | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('details');
+    const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
+    const [apiGroups, setApiGroups] = useState<Group[]>([]);
+    const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
 
     useEffect(() => {
         const fetchApiData = async () => {
@@ -23,7 +29,17 @@ const ManageApiPage: React.FC = () => {
                 setLoading(true);
                 const data = await apiService.getApiById(apiId); 
                 setApi(data);
+                
+                // Cargar grupos de la API
+                if (data) {
+                    console.log('Fetching groups for API:', apiId);
+                    const groups = await adminService.getApiGroups(apiId);
+                    console.log('API groups loaded:', groups);
+                    setApiGroups(groups);
+                    setSelectedGroupIds(groups.map(g => g.id));
+                }
             } catch (error) {
+                console.error('Error loading API data:', error);
                 addNotification('Failed to load API data', 'error');
             } finally {
                 setLoading(false);
@@ -31,6 +47,29 @@ const ManageApiPage: React.FC = () => {
         };
         fetchApiData();
     }, [apiId, addNotification]);
+
+    useEffect(() => {
+        const loadAvailableGroups = async () => {
+            if (!user) return;
+            
+            try {
+                const isSuperAdmin = user.authorities.includes('ROLE_SUPERADMIN');
+                const isIT = user.authorities.includes('ROLE_IT');
+                
+                if (isSuperAdmin) {
+                    const groups = await adminService.listGroups();
+                    setAvailableGroups(groups);
+                } else if (isIT) {
+                    const groups = await adminService.getCurrentUserGroups();
+                    setAvailableGroups(groups);
+                }
+            } catch (error) {
+                console.error('Error loading groups:', error);
+            }
+        };
+        
+        loadAvailableGroups();
+    }, [user]);
 
     const handleConfigChange = (name: string, value: any) => {
         setApi(prev => {
@@ -56,11 +95,31 @@ const ManageApiPage: React.FC = () => {
     };
 
     const handleSave = async () => {
-        if (!api?.name || !api?.apiConfiguration) return;
+        if (!api?.name || !api?.apiConfiguration || !apiId) return;
         setIsSaving(true);
         try {
             await apiService.updateApiConfiguration(api.name, api.apiConfiguration);
-            addNotification('Configuration saved successfully!', 'success');
+            
+            const currentGroupIds = apiGroups.map(g => g.id).sort();
+            const newGroupIds = selectedGroupIds.sort();
+            
+            if (JSON.stringify(currentGroupIds) !== JSON.stringify(newGroupIds)) {
+
+                const groupsToRemove = currentGroupIds.filter(id => !newGroupIds.includes(id));
+                for (const groupId of groupsToRemove) {
+                    await adminService.removeApiFromGroup(groupId, apiId);
+                }
+                
+                const groupsToAdd = newGroupIds.filter(id => !currentGroupIds.includes(id));
+                if (groupsToAdd.length > 0) {
+                    await adminService.assignApiToGroups(apiId, groupsToAdd);
+                }
+                
+                addNotification('Configuration and groups saved successfully!', 'success');
+            } else {
+                addNotification('Configuration saved successfully!', 'success');
+            }
+            
             navigate('/apis'); 
         } catch (error) {
             addNotification('Failed to save configuration', 'error');
@@ -100,6 +159,9 @@ const ManageApiPage: React.FC = () => {
                             title={`Editing Configuration for ${api.name}`}
                             description="Update the runtime settings for this API. Changes will be applied immediately."
                             saveButtonText="Save Changes"
+                            availableGroups={availableGroups}
+                            selectedGroupIds={selectedGroupIds}
+                            onGroupSelectionChange={setSelectedGroupIds}
                         />
                     )}
                 </div>

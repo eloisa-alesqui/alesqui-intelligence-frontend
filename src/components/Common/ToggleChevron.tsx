@@ -25,7 +25,7 @@ const ToggleChevron: FC<ToggleChevronProps> = ({ open, size = 16, className = ''
   const style: React.CSSProperties = {
     width: size,
     height: size,
-    transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+    transform: open ? 'rotate(180deg)' : 'rotate(90deg)',
     transition,
     transformOrigin: 'center',
     willChange: 'transform'

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bot, FileText, Database, MessageCircle, User, LogOut, ShieldAlert } from 'lucide-react';
+import { Bot, FileText, Database, MessageCircle, User, LogOut, ShieldAlert, UserCog } from 'lucide-react';
 import logo from '../../assets/logo.png'; 
 
 // TypeScript types for the component's props.
@@ -32,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
         { id: 'apis', label: 'Configured APIs', icon: Database, to: '/apis', roles: ['ROLE_IT', 'ROLE_SUPERADMIN', 'ROLE_TRIAL'] },
         { id: 'diagnostics', label: 'Diagnostics', icon: ShieldAlert, to: '/diagnostics', roles: ['ROLE_IT', 'ROLE_SUPERADMIN', 'ROLE_TRIAL'] },
         { id: 'chat', label: 'Chat with APIs', icon: MessageCircle, to: '/chat' },
-        { id: 'admin', label: 'Administration', icon: Bot, to: '/admin/groups', roles: ['ROLE_SUPERADMIN'] }
+        { id: 'admin', label: 'Administration', icon: UserCog, to: '/admin/groups', roles: ['ROLE_SUPERADMIN'] }
     ];
 
     // Filter the navigation items based on the user's roles.

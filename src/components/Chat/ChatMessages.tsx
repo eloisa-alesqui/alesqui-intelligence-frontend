@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, FC } from 'react';
-import { Bot, User, AlertCircle, Download, ChevronDown, ChevronUp, Brain, ExternalLink, Flag, X, Send, Loader2, Zap, FileText, CheckCircle, XCircle, Copy as CopyIcon, Check as CheckIcon } from 'lucide-react';
+import { Bot, User, AlertCircle, Download, ExternalLink, Flag, X, Send, Loader2, Copy as CopyIcon, Check as CheckIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { formatSmartTimestamp } from '../../utils/dateUtils';
-import { chatService, ReasoningStep, StepType, ToolCallData, ToolCallStatus } from '../../services/chatService'; // Import reasoning types
+import { chatService, ReasoningStep, ToolCallData } from '../../services/chatService'; // Import reasoning types
 import ChatMessageChart from './ChatMessageChart';
 import { useNotifications } from '../../context/NotificationContext';
 import InteractiveReasoning from './InteractiveReasoning';

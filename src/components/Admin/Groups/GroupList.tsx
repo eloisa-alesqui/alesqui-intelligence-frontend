@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminService, AdminGroup } from '../../../services/adminService';
+import { adminService, Group } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
 import CreateGroupModal from './CreateGroupModal.tsx';
 import { Loader2, AlertCircle, Inbox, User, Search, Plus, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Loader2, AlertCircle, Inbox, User, Search, Plus, ChevronUp, ChevronDown
 const GroupList: React.FC = () => {
     const { addNotification } = useNotifications();
     const navigate = useNavigate();
-    const [groups, setGroups] = useState<AdminGroup[]>([]);
+    const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [filterText, setFilterText] = useState('');
@@ -19,7 +19,7 @@ const GroupList: React.FC = () => {
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState('');
     const [deleting, setDeleting] = useState(false);
-    const [groupToDelete, setGroupToDelete] = useState<AdminGroup | null>(null);
+    const [groupToDelete, setGroupToDelete] = useState<Group | null>(null);
 
     const load = async () => {
         try {
@@ -49,7 +49,7 @@ const GroupList: React.FC = () => {
         return sorted;
     }, [groups, filterText, codeSortDir]);
 
-    const openDeleteModal = (g: AdminGroup) => {
+    const openDeleteModal = (g: Group) => {
         setGroupToDelete(g);
         setDeleteOpen(true);
     };
@@ -83,7 +83,7 @@ const GroupList: React.FC = () => {
         }
     };
 
-        const handleDelete = async (g: AdminGroup) => {
+        const handleDelete = async (g: Group) => {
             // Guard: cannot delete if group has any APIs or users
             const apiCount = g.apiCount ?? 0;
             const userCount = g.userCount ?? 0;

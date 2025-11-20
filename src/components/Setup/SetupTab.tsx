@@ -46,7 +46,10 @@ const SetupTab: React.FC = () => {
         handleUnifyAPI,
         apiConfig,
         updateApiConfig,
-        handleSaveConfiguration
+        handleSaveConfiguration,
+        availableGroups,
+        selectedGroupIds,
+        setSelectedGroupIds
     } = useApiForm({ onApiConfigured: handleApiConfigured });
 
     /**
@@ -148,6 +151,9 @@ const SetupTab: React.FC = () => {
                                 onSave={handleSaveConfiguration}
                                 isLoading={isLoading}
                                 apiName={apiForm.name}
+                                availableGroups={availableGroups}
+                                selectedGroupIds={selectedGroupIds}
+                                onGroupSelectionChange={setSelectedGroupIds}
                             />
                         )}
                     </div>

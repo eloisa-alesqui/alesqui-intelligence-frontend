@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService, GroupDetail as GroupDetailType } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
-import { Layers, Users as UsersIcon, Settings, Trash2, Save, Loader2, Server, Search, X } from 'lucide-react';
+import { Layers, Users as UsersIcon, Settings, Trash2, Save, Loader2, Server, Search, X, Info } from 'lucide-react';
 import { apiService, ApiListResponse } from '../../../services/apiService';
 import { ApiDocument } from '../../../types';
 
@@ -336,7 +336,7 @@ const GroupDetail: React.FC = () => {
                                 className={`px-5 py-3 text-sm font-medium tracking-wide border-b-2 transition-colors flex items-center gap-2
                 ${tab === k ? 'border-blue-600 text-blue-700 bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'}`}
                             >
-                                {k === 'info' && <Settings className="w-4 h-4" />}
+                                {k === 'info' && <Info className="w-4 h-4" />}
                                 {k === 'apis' && <Server className="w-4 h-4" />}
                                 {k === 'users' && <UsersIcon className="w-4 h-4" />}
                                 {k.toUpperCase()}

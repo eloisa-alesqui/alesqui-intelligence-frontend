@@ -1,6 +1,8 @@
 import React, { ElementType } from 'react';
-import { Save, Lock, Timer, Zap, Settings } from 'lucide-react';
+import { Save, Lock, Timer, Zap, Settings, Users } from 'lucide-react';
 import { ApiConfig } from '../../types'; // Import the main config type
+import { Group } from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
 
 /** Props for the generic InputField component. */
 interface InputFieldProps {
@@ -119,6 +121,12 @@ interface ConfigurationStepProps {
     description?: string;
     /** Optional text for the main save button. Defaults to 'Save Configuration & Finish'. */
     saveButtonText?: string;
+    /** Available groups for selection (IT: user's groups, SUPERADMIN: all groups) */
+    availableGroups?: Group[];
+    /** Currently selected group IDs */
+    selectedGroupIds?: string[];
+    /** Callback to update selected group IDs */
+    onGroupSelectionChange?: (groupIds: string[]) => void;
 }
 
 /**
@@ -133,13 +141,36 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({
     apiName,
     title = 'Final Step: Configure API Execution',
     description,
-    saveButtonText = 'Save Configuration & Finish'
+    saveButtonText = 'Save Configuration & Finish',
+    availableGroups = [],
+    selectedGroupIds = [],
+    onGroupSelectionChange
 }) => {
+    const { user } = useAuth();
+    
     // Render nothing if the configuration object is not yet available.
     // This acts as a guard against rendering with an incomplete or null initial state.
     if (!config || !config.auth) {
         return null;
     }
+
+    const isTrial = user?.authorities?.includes('ROLE_TRIAL') || false;
+    const isSuperAdmin = user?.authorities?.includes('ROLE_SUPERADMIN') || false;
+    const isIT = user?.authorities?.includes('ROLE_IT') || false;
+    const showGroupSelector = (isSuperAdmin || isIT) && availableGroups.length > 0;
+
+    /**
+     * Handles the selection/deselection of groups
+     */
+    const handleGroupToggle = (groupId: string) => {
+        if (!onGroupSelectionChange) return;
+        
+        const newSelectedIds = selectedGroupIds.includes(groupId)
+            ? selectedGroupIds.filter(id => id !== groupId)
+            : [...selectedGroupIds, groupId];
+        
+        onGroupSelectionChange(newSelectedIds);
+    };
 
     /**
      * A generic change handler for all form inputs in this component.
@@ -169,6 +200,46 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({
                     {description || `You are configuring the runtime behavior for the ${apiName} API. These settings determine how the system will interact with it.`}
                 </p>
             </div>
+
+            {/* Group Selection Section - Only for IT and SUPERADMIN */}
+            {showGroupSelector && (
+                <Section title="Group Assignment" icon={Users}>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                            {isSuperAdmin ? 'Select groups to assign this API to (multiple selection)' : 'Select your groups to assign this API to (multiple selection)'}
+                        </label>
+                        <p className="text-xs text-gray-500 mb-4">
+                            {isSuperAdmin 
+                                ? 'Select all groups that should have access to this API. You can select multiple groups.' 
+                                : 'Select which of your groups should have access to this API. You can select multiple groups.'}
+                        </p>
+                        <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-md p-4 bg-gray-50">
+                            {availableGroups.map(group => (
+                                <label
+                                    key={group.id}
+                                    className="flex items-start space-x-3 p-3 rounded-md hover:bg-white cursor-pointer transition-colors border border-transparent hover:border-indigo-200"
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedGroupIds.includes(group.id)}
+                                        onChange={() => handleGroupToggle(group.id)}
+                                        className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-900">{group.name}</span>
+                                            <span className="text-xs text-gray-500 ml-2">({group.code})</span>
+                                        </div>
+                                        {group.description && (
+                                            <p className="text-xs text-gray-600 mt-1">{group.description}</p>
+                                        )}
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                </Section>
+            )}
 
             {/* General Settings Section */}
             <Section title="General Configuration" icon={Settings}>

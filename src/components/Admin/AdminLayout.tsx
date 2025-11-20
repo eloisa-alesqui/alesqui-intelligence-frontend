@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Layers, Users, Settings, Shield } from 'lucide-react';
+import { Layers, Users, Settings, UserCog } from 'lucide-react';
 
 interface AdminLayoutProps {}
 
@@ -20,7 +20,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
             <div className="p-4 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center">
                 <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                  <Shield className="w-5 h-5 text-blue-600" />
+                  <UserCog className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
                   <h4 className="text-lg font-semibold text-gray-900">Administration</h4>
@@ -52,12 +52,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = () => {
                   );
                 })}
               </nav>
-            </div>
-
-            {/* Footer small print */}
-            <div className="p-3 border-t bg-white text-[11px] text-gray-400 flex items-center gap-1">
-              <Settings className="w-3 h-3" />
-              Admin Panel
             </div>
           </div>
         </aside>

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { adminService, UserDetail as UserDetailType, AdminGroup } from '../../../services/adminService';
+import { adminService, UserDetail as UserDetailType, Group } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
-import { User, Layers, Shield, Save, Loader2, X, Mail, Lock, CheckCircle, XCircle, Trash2, Search, Plus } from 'lucide-react';
+import { User, Layers, Shield, Save, Loader2, X, Mail, Lock, CheckCircle, XCircle, Trash2, Search, Plus, Info } from 'lucide-react';
 
 const UserDetail: React.FC = () => {
     const { userId } = useParams();
@@ -26,7 +26,7 @@ const UserDetail: React.FC = () => {
     const [groupAssignOpen, setGroupAssignOpen] = useState(false);
     const [groupAssignSearch, setGroupAssignSearch] = useState('');
     const [groupAssignLoading, setGroupAssignLoading] = useState(false);
-    const [availableGroups, setAvailableGroups] = useState<AdminGroup[]>([]);
+    const [availableGroups, setAvailableGroups] = useState<Group[]>([]);
     const [groupAssignSelected, setGroupAssignSelected] = useState<Set<string>>(new Set());
     const [assigningGroups, setAssigningGroups] = useState(false);
 
@@ -169,14 +169,11 @@ const UserDetail: React.FC = () => {
         }
     };
 
-    const toggleRole = (role: string) => {
+    const selectRole = (role: string) => {
         if (!draft) return;
         setDraft(prev => {
             if (!prev) return prev;
-            const newRoles = prev.roles.includes(role)
-                ? prev.roles.filter(r => r !== role)
-                : [...prev.roles, role];
-            return { ...prev, roles: newRoles };
+            return { ...prev, roles: [role] };
         });
     };
 
@@ -227,61 +224,39 @@ const UserDetail: React.FC = () => {
 
     return (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => navigate('/admin/users')}
-                        className="text-gray-600 hover:text-gray-900 transition-colors"
-                        aria-label="Back to users"
-                    >
-                        ←
-                    </button>
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                            <User className="w-7 h-7 text-blue-600" />
-                            {data.username}
-                            {isCurrentUser && (
-                                <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded border border-green-200">(You)</span>
-                            )}
-                        </h1>
-                        <p className="text-gray-600 mt-1">User ID: {data.id}</p>
-                    </div>
+            {/* Header Card */}
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 flex items-start justify-between">
+                <div className="space-y-1">
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                        <User className="w-6 h-6 text-blue-600" />
+                        {data.username}
+                        {isCurrentUser && (
+                            <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded border border-green-200">(You)</span>
+                        )}
+                    </h1>
                 </div>
-                {isDirty && (
-                    <button
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 shadow-sm"
-                    >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Changes
-                    </button>
-                )}
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200">
-                <nav className="-mb-px flex gap-8">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="border-b border-gray-200 flex overflow-x-auto">
                     {[
-                        { key: 'info', label: 'Info', icon: User },
-                        { key: 'groups', label: 'Groups', icon: Layers, count: data.groups.length },
-                        { key: 'security', label: 'Security', icon: Shield },
+                        { key: 'info', label: 'INFO', icon: Info },
+                        { key: 'groups', label: 'GROUPS', icon: Layers, count: data.groups.length },
+                        { key: 'security', label: 'SECURITY', icon: Shield },
                     ].map(t => {
                         const Icon = t.icon;
                         return (
                             <button
                                 key={t.key}
                                 onClick={() => setTab(t.key as any)}
-                                className={`py-3 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors ${tab === t.key
-                                        ? 'border-blue-600 text-blue-600'
-                                        : 'border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300'
-                                    }`}
+                                className={`px-5 py-3 text-sm font-medium tracking-wide border-b-2 transition-colors flex items-center gap-2
+                ${tab === t.key ? 'border-blue-600 text-blue-700 bg-blue-50' : 'border-transparent text-gray-600 hover:text-gray-800 hover:bg-gray-50'}`}
                             >
                                 <Icon className="w-4 h-4" />
                                 {t.label}
                                 {t.count !== undefined && (
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tab === t.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
+                                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-medium ${tab === t.key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'
                                         }`}>
                                         {t.count}
                                     </span>
@@ -289,35 +264,34 @@ const UserDetail: React.FC = () => {
                             </button>
                         );
                     })}
-                </nav>
-            </div>
+                </div>
+                <div className="p-6 space-y-6">
+                    {/* Tab Content */}
+                    {tab === 'info' && (
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <Mail className="w-4 h-4 inline mr-1.5" />
+                                    Email (Username)
+                                </label>
+                                <input
+                                    type="email"
+                                    value={draft.username}
+                                    onChange={e => setDraft(prev => prev ? { ...prev, username: e.target.value } : prev)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                                <p className="mt-1 text-xs text-gray-500">This email serves as the username for login</p>
+                            </div>
 
-            {/* Tab Content */}
-            {tab === 'info' && (
-                <div className="bg-white border rounded-lg shadow-sm p-6 space-y-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            <Mail className="w-4 h-4 inline mr-1.5" />
-                            Email (Username)
-                        </label>
-                        <input
-                            type="email"
-                            value={draft.username}
-                            onChange={e => setDraft(prev => prev ? { ...prev, username: e.target.value } : prev)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">This email serves as the username for login</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">User ID</label>
-                        <input
-                            type="text"
-                            value={data.id}
-                            disabled
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                        />
-                    </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">User ID</label>
+                                <input
+                                    type="text"
+                                    value={data.id}
+                                    disabled
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+                                />
+                            </div>
 
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Created</label>
@@ -410,15 +384,15 @@ const UserDetail: React.FC = () => {
                             </div>
                         )}
                     </div>
-                </div>
-            )}
+                        </div>
+                    )}
 
-            {tab === 'groups' && (
-                <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            Group Memberships ({data.groups.length})
-                        </h3>
+                    {tab === 'groups' && (
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-900">
+                                    Group Memberships ({data.groups.length})
+                                </h3>
                         <button
                             onClick={() => setGroupAssignOpen(true)}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
@@ -472,7 +446,7 @@ const UserDetail: React.FC = () => {
             )}
 
             {tab === 'security' && (
-                <div className="bg-white border rounded-lg shadow-sm p-6 space-y-6">
+                <div className="space-y-6">
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                             <Shield className="w-5 h-5 text-blue-600" />
@@ -482,16 +456,18 @@ const UserDetail: React.FC = () => {
                             {availableRoles.map(role => (
                                 <label
                                     key={role.value}
-                                    className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer transition-colors ${draft.roles.includes(role.value)
+                                    className={`flex items-center gap-3 p-4 border rounded-md cursor-pointer transition-colors ${
+                                        draft.roles.includes(role.value)
                                             ? 'bg-blue-50 border-blue-300'
                                             : 'bg-white border-gray-300 hover:bg-gray-50'
-                                        }`}
+                                    }`}
                                 >
                                     <input
-                                        type="checkbox"
+                                        type="radio"
+                                        name="userRole"
                                         checked={draft.roles.includes(role.value)}
-                                        onChange={() => toggleRole(role.value)}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        onChange={() => selectRole(role.value)}
+                                        className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
                                     />
                                     <div className="flex-1">
                                         <span className="font-medium text-sm text-gray-900">{role.label}</span>
@@ -509,9 +485,24 @@ const UserDetail: React.FC = () => {
                                 At least one role is required
                             </p>
                         )}
+                        
+                        {isDirty && (
+                            <div className="mt-6 pt-4 border-t">
+                                <button
+                                    onClick={handleSave}
+                                    disabled={saving || draft.roles.length === 0}
+                                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                >
+                                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    Save Changes
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
+                </div>
+            </div>
 
             {/* Assign Groups Modal */}
             {groupAssignOpen && (
