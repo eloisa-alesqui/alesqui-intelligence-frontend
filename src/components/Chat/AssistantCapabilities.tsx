@@ -160,22 +160,36 @@ const AssistantCapabilities: FC<CapabilitiesProps> = ({ configuredApis, onExampl
                         const colorScheme = colorSchemes[index % colorSchemes.length];
 
                         return (
-                            <div key={api._id || api.id} className={`${colorScheme.bgColor} border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow duration-200`}>
+                            <div 
+                                key={api._id || api.id} 
+                                className={`${colorScheme.bgColor} border border-gray-100 rounded-xl p-4 transition-shadow duration-200 hover:shadow-sm`}
+                            >
                                 <div className="flex items-center mb-3">
-                                    <div className={`${colorScheme.iconBg} p-2 rounded-lg mr-3`}>
-                                        <Zap className={`w-5 h-5 ${colorScheme.iconColor}`} />
+                                    <div className={`${colorScheme.iconBg} p-1.5 rounded-md mr-2.5`}>
+                                        <Zap className={`w-4 h-4 ${colorScheme.iconColor}`} />
                                     </div>
-                                    <h5 className={`font-semibold ${colorScheme.titleColor}`}>{categoryName}</h5>
+                                    <h5 className={`font-bold text-sm ${colorScheme.titleColor} uppercase tracking-wide`}>
+                                        {categoryName}
+                                    </h5>
                                 </div>
 
-                                <div className="space-y-2">
+                                <div className="flex flex-wrap gap-2">
                                     {api.capabilities.capabilities.map((capability, capIndex) => (
-                                        <div key={capIndex} className="flex items-start bg-white/60 rounded-lg p-3 border border-white/80">
-                                            <div className={`w-2 h-2 ${colorScheme.dotColor} rounded-full mt-2 mr-3 flex-shrink-0`}></div>
-                                            <p className="text-sm text-gray-700 leading-relaxed">
-                                                {capability}
-                                            </p>
-                                        </div>
+                                        <span
+                                            key={capIndex}
+                                            className={`
+                                                inline-flex items-center
+                                                text-xs font-medium px-2.5 py-1
+                                                bg-white/50 
+                                                border border-gray-100
+                                                rounded-md
+                                                text-gray-600
+                                                cursor-default select-none
+                                            `}
+                                        >
+                                            <span className={`w-1.5 h-1.5 rounded-full ${colorScheme.dotColor} mr-2 opacity-70`}></span>
+                                            {capability}
+                                        </span>
                                     ))}
                                 </div>
                             </div>
