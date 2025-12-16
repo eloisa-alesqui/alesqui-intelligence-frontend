@@ -262,6 +262,16 @@ const ApiList: React.FC = () => {
                                             <span className="truncate">{api.apiConfiguration.baseUrl}</span>
                                         </div>
                                     )}
+
+                                    {/* Read Only Status */}
+                                    {api.apiConfiguration?.readOnly && (
+                                        <div className="flex items-center text-amber-600">
+                                            <div className="h-4 w-4 mr-2 flex items-center justify-center">
+                                                <Settings size={16} />
+                                            </div>
+                                            <span className="font-medium">Read Only</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

@@ -384,6 +384,15 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({
                         <p className="text-xs text-gray-500">Logs API requests and responses. Useful for debugging.</p>
                     </div>
                 </div>
+                <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                        <input id="readOnly" type="checkbox" name="readOnly" checked={config.readOnly} onChange={handleChange} className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+                    </div>
+                    <div className="ml-3 text-sm">
+                        <label htmlFor="readOnly" className="font-medium text-gray-700">Read Only</label>
+                        <p className="text-xs text-gray-500">Mark this API as read-only to prevent modifications.</p>
+                    </div>
+                </div>
                  <SliderInputField
                     label="Rate Limit"
                     name="rateLimit"

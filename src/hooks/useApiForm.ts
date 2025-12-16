@@ -39,6 +39,7 @@ const initialApiConfiguration: ApiConfig = {
     maxRetries: 3,
     enableLogging: true,
     rateLimit: 0,
+    readOnly: false,
     auth: {
         authType: 'none', // Estado inicial limpio
     }

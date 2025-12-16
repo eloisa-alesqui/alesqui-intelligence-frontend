@@ -204,5 +204,6 @@ export interface ApiConfig {
     maxRetries: number;
     enableLogging: boolean;
     rateLimit: number;
+    readOnly: boolean;
     auth: AuthConfig;
 }
