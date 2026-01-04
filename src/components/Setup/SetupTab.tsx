@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { apiService } from '../../services/apiService';
+import { apiService, ApiUtils } from '../../services/apiService';
 import { useNotifications } from '../../context/NotificationContext';
 import { useApiForm } from '../../hooks/useApiForm';
 import { ApiDocument } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 import StepProgress from './StepProgress';
 import SwaggerStep from './SwaggerStep';
@@ -21,6 +22,7 @@ import ConfiguredApisSidebar from './ConfiguredApisSidebar';
  */
 const SetupTab: React.FC = () => {
     const { addNotification } = useNotifications();
+    const { user } = useAuth();
 
     const [configuredApis, setConfiguredApis] = useState<ApiDocument[]>([]);
     const [loadingApis, setLoadingApis] = useState(true);
@@ -79,6 +81,15 @@ const SetupTab: React.FC = () => {
      * It calls the apiService to delete the document and then reloads the list.
      */
     const handleDeleteApi = async (apiId: string, apiName: string) => {
+        // Find the API to check permissions
+        const apiToDelete = configuredApis.find(api => api.id === apiId);
+        
+        // Validate permissions before attempting to delete
+        if (apiToDelete && !ApiUtils.canModifyApi(apiToDelete, user?.sub, user?.authorities)) {
+            addNotification('You do not have permission to delete this API', 'error');
+            return;
+        }
+        
         // We use the apiName in the confirmation message, but only apiId for the call.
         try {
             // Call the service to delete the API from the backend.

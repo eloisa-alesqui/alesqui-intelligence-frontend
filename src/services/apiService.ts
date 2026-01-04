@@ -263,5 +263,33 @@ export const ApiUtils = {
         return api.servers
             .map((server: any) => server.url || server.baseUrl || '')
             .filter(Boolean);
+    },
+
+    /**
+     * Checks if a user can modify (delete or disable) an API based on their role.
+     * - SUPERADMIN and IT users can modify any API
+     * - TRIAL users can only modify APIs they created (where createdBy matches their username)
+     * @param api The ApiDocument to check permissions for.
+     * @param username The current user's username (from user.sub).
+     * @param authorities The current user's roles/authorities.
+     * @returns true if the user can modify the API, false otherwise.
+     */
+    canModifyApi(api: ApiDocument, username: string | undefined, authorities: string[] | undefined): boolean {
+        if (!username || !authorities) {
+            return false;
+        }
+
+        // SUPERADMIN and IT can modify any API
+        if (authorities.includes('ROLE_SUPERADMIN') || authorities.includes('ROLE_IT')) {
+            return true;
+        }
+
+        // TRIAL users can only modify their own APIs
+        if (authorities.includes('ROLE_TRIAL')) {
+            return api.createdBy === username;
+        }
+
+        // BUSINESS users typically don't have modification rights
+        return false;
     }
 };

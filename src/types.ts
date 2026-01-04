@@ -102,6 +102,7 @@ export interface ApiDocument {
     servers?: any[];
     createdAt?: string;
     updatedAt?: string;
+    createdBy?: string; // Username of the user who created this API
     active: boolean;
     apiConfiguration: ApiConfig;
     capabilities?: GeneratedCapabilities; 

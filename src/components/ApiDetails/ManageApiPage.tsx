@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom'; 
-import { apiService } from '../../services/apiService';
+import { apiService, ApiUtils } from '../../services/apiService';
 import { ApiDocument } from '../../types';
 import ConfigurationStep from '../Setup/ConfigurationStep'; 
 import { useNotifications } from '../../context/NotificationContext';
@@ -96,6 +96,13 @@ const ManageApiPage: React.FC = () => {
 
     const handleSave = async () => {
         if (!api?.name || !api?.apiConfiguration || !apiId) return;
+        
+        // Check if user has permission to modify this API
+        if (!ApiUtils.canModifyApi(api, user?.sub, user?.authorities)) {
+            addNotification('You do not have permission to modify this API', 'error');
+            return;
+        }
+        
         setIsSaving(true);
         try {
             await apiService.updateApiConfiguration(api.name, api.apiConfiguration);
@@ -162,6 +169,7 @@ const ManageApiPage: React.FC = () => {
                             availableGroups={availableGroups}
                             selectedGroupIds={selectedGroupIds}
                             onGroupSelectionChange={setSelectedGroupIds}
+                            canModify={ApiUtils.canModifyApi(api, user?.sub, user?.authorities)}
                         />
                     )}
                 </div>

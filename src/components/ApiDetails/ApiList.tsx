@@ -1,8 +1,9 @@
 import React, { useState, useEffect, FC } from 'react';
-import { apiService } from '../../services/apiService';
+import { apiService, ApiUtils } from '../../services/apiService';
 import { ApiDocument } from '../../types';
 import { Search, Server, Calendar, Users, Globe, Settings, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const DeleteConfirmationDialog: FC<{
     isOpen: boolean;
@@ -34,6 +35,7 @@ const DeleteConfirmationDialog: FC<{
 
 const ApiList: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [apis, setApis] = useState<ApiDocument[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,10 @@ const ApiList: React.FC = () => {
     };
 
     const openDeleteDialog = (api: ApiDocument) => {
+        // Check if user has permission to delete this API
+        if (!ApiUtils.canModifyApi(api, user?.sub, user?.authorities)) {
+            return; // Don't open dialog if user doesn't have permission
+        }
         setApiToDelete(api);
         setIsDialogOpen(true);
     };
@@ -97,9 +103,14 @@ const ApiList: React.FC = () => {
         setApiToDelete(null);
     };
 
-    const handleToggleActive = async (apiId: string, currentState: boolean) => {
+    const handleToggleActive = async (api: ApiDocument) => {
+        // Check if user has permission to modify this API
+        if (!ApiUtils.canModifyApi(api, user?.sub, user?.authorities)) {
+            return; // Don't allow toggle if user doesn't have permission
+        }
+        
         try {
-            await apiService.updateApiStatus(apiId, !currentState);
+            await apiService.updateApiStatus(api.id, !api.active);
             loadApis();
         } catch (error) {
         }
@@ -202,17 +213,28 @@ const ApiList: React.FC = () => {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <button onClick={() => handleToggleActive(api.id, api.active)}>
+                                        <button 
+                                            onClick={() => handleToggleActive(api)}
+                                            disabled={!ApiUtils.canModifyApi(api, user?.sub, user?.authorities)}
+                                            className={ApiUtils.canModifyApi(api, user?.sub, user?.authorities) ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}
+                                            title={ApiUtils.canModifyApi(api, user?.sub, user?.authorities) ? (api.active ? 'Disable API' : 'Enable API') : 'You do not have permission to modify this API'}
+                                        >
                                             {api.active ? (
-                                                <ToggleRight size={24} className="text-green-500 cursor-pointer" />
+                                                <ToggleRight size={24} className="text-green-500" />
                                             ) : (
-                                                <ToggleLeft size={24} className="text-gray-400 cursor-pointer" />
+                                                <ToggleLeft size={24} className="text-gray-400" />
                                             )}
                                         </button>
 
                                         <button 
-                                            onClick={() => openDeleteDialog(api)} 
-                                            className="p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 transition-all"
+                                            onClick={() => openDeleteDialog(api)}
+                                            disabled={!ApiUtils.canModifyApi(api, user?.sub, user?.authorities)}
+                                            className={`p-1.5 rounded-full transition-all ${
+                                                ApiUtils.canModifyApi(api, user?.sub, user?.authorities)
+                                                    ? 'text-gray-400 hover:bg-red-100 hover:text-red-600 cursor-pointer'
+                                                    : 'text-gray-300 cursor-not-allowed opacity-50'
+                                            }`}
+                                            title={ApiUtils.canModifyApi(api, user?.sub, user?.authorities) ? 'Delete API' : 'You do not have permission to delete this API'}
                                         >
                                             <Trash2 size={20} />
                                         </button>

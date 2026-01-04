@@ -127,6 +127,8 @@ interface ConfigurationStepProps {
     selectedGroupIds?: string[];
     /** Callback to update selected group IDs */
     onGroupSelectionChange?: (groupIds: string[]) => void;
+    /** Whether the user can modify this API configuration (defaults to true for backward compatibility) */
+    canModify?: boolean;
 }
 
 /**
@@ -144,7 +146,8 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({
     saveButtonText = 'Save Configuration & Finish',
     availableGroups = [],
     selectedGroupIds = [],
-    onGroupSelectionChange
+    onGroupSelectionChange,
+    canModify = true
 }) => {
     const { user } = useAuth();
     
@@ -407,10 +410,19 @@ const ConfigurationStep: React.FC<ConfigurationStepProps> = ({
 
             {/* Final Save Button to submit the configuration */}
             <div className="pt-5">
+                {!canModify && (
+                    <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                        <p className="text-sm text-amber-800">
+                            <Lock className="w-4 h-4 inline mr-2" />
+                            You can view this configuration, but you don't have permission to modify it.
+                        </p>
+                    </div>
+                )}
                 <button
                     onClick={onSave}
-                    disabled={isLoading}
+                    disabled={isLoading || !canModify}
                     className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!canModify ? 'You do not have permission to modify this API' : ''}
                 >
                     <Save className="w-5 h-5 mr-2" />
                     {isLoading ? 'Saving...' : saveButtonText}

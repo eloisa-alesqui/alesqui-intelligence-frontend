@@ -2,6 +2,8 @@ import React, { useState, FC } from 'react';
 import { Trash2, Loader, Database, Search, ArrowRight } from 'lucide-react';
 import { ApiDocument } from '../../types';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { ApiUtils } from '../../services/apiService';
 
 // ================================================================================================
 // INTERFACE DEFINITIONS
@@ -51,7 +53,7 @@ const EmptyState: React.FC = () => (
  * ApiCard Component
  * Renders a single, simplified card for an API, showing its name, version, and a delete button.
  */
-const ApiCard: React.FC<{ api: ApiDocument; onDelete: (api: ApiDocument) => void }> = ({ api, onDelete }) => (
+const ApiCard: React.FC<{ api: ApiDocument; onDelete: (api: ApiDocument) => void; canDelete: boolean }> = ({ api, onDelete, canDelete }) => (
     <div className="group relative border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors flex justify-between items-center">
         <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 pr-8">
@@ -64,9 +66,14 @@ const ApiCard: React.FC<{ api: ApiDocument; onDelete: (api: ApiDocument) => void
             </div>
         </div>
         <button
-            onClick={() => onDelete(api)}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-gray-400 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={`Delete API: ${api.name}`}
+            onClick={() => canDelete && onDelete(api)}
+            disabled={!canDelete}
+            className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+                canDelete 
+                    ? 'text-gray-400 hover:bg-red-100 hover:text-red-600 cursor-pointer' 
+                    : 'text-gray-300 cursor-not-allowed'
+            }`}
+            title={canDelete ? `Delete API: ${api.name}` : 'You do not have permission to delete this API'}
         >
             <Trash2 size={16} />
         </button>
@@ -107,6 +114,7 @@ const DeleteConfirmationDialog: FC<{
 // ================================================================================================
 
 const ConfiguredApisSidebar: React.FC<ConfiguredApisSidebarProps> = ({ configuredApis, onDeleteApi, loading }) => {
+    const { user } = useAuth();
     
     // State to hold the current value of the search input
     const [searchTerm, setSearchTerm] = useState('');
@@ -115,6 +123,10 @@ const ConfiguredApisSidebar: React.FC<ConfiguredApisSidebarProps> = ({ configure
     const [apiToDelete, setApiToDelete] = useState<ApiDocument | null>(null);
 
     const openConfirmationDialog = (api: ApiDocument) => {
+        // Check if user has permission to delete this API
+        if (!ApiUtils.canModifyApi(api, user?.sub, user?.authorities)) {
+            return; // Don't open dialog if user doesn't have permission
+        }
         setApiToDelete(api);
         setIsDialogOpen(true);
     };
@@ -144,9 +156,12 @@ const ConfiguredApisSidebar: React.FC<ConfiguredApisSidebarProps> = ({ configure
         }
         return (
             <div className="space-y-3">
-                {filteredApis.map((api) => (
-                    <ApiCard key={api.id} api={api} onDelete={openConfirmationDialog} />
-                ))}
+                {filteredApis.map((api) => {
+                    const canDelete = ApiUtils.canModifyApi(api, user?.sub, user?.authorities);
+                    return (
+                        <ApiCard key={api.id} api={api} onDelete={openConfirmationDialog} canDelete={canDelete} />
+                    );
+                })}
             </div>
         );
     };
