@@ -75,7 +75,7 @@ const ForgotPasswordPage: React.FC = () => {
             // Always show success message (security feature)
             setIsSuccess(true);
             setCooldownSeconds(60); // 60-second cooldown
-            setRedirectSeconds(5);   // 5-second redirect timer
+            setRedirectSeconds(10);   // 10-second redirect timer
             setEmail(''); // Clear email field
         } catch (err: any) {
             console.error('Forgot password error:', err);
