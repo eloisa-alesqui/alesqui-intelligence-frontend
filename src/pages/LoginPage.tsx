@@ -29,10 +29,10 @@ const LoginPage: React.FC = () => {
             setSuccessMessage('Password successfully reset! You can now log in with your new password.');
             sessionStorage.removeItem('passwordResetSuccess');
             
-            // Clear success message after 10 seconds
+            // Clear success message after 15 seconds
             const timer = setTimeout(() => {
                 setSuccessMessage('');
-            }, 10000);
+            }, 15000);
             
             return () => clearTimeout(timer);
         }

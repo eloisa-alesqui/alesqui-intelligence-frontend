@@ -28,14 +28,14 @@ const ForgotPasswordPage: React.FC = () => {
         }
     }, [cooldownSeconds]);
 
-    // Auto-redirect timer (5 seconds after success)
+    // Auto-redirect timer (10 seconds after success)
     useEffect(() => {
         if (redirectSeconds > 0) {
             const timer = setTimeout(() => {
                 setRedirectSeconds(redirectSeconds - 1);
             }, 1000);
             return () => clearTimeout(timer);
-        } else if (redirectSeconds === 0 && isSuccess && cooldownSeconds <= 55) {
+        } else if (redirectSeconds === 0 && isSuccess && cooldownSeconds <= 50) {
             // Redirect when timer reaches 0
             navigate('/login');
         }
@@ -89,7 +89,7 @@ const ForgotPasswordPage: React.FC = () => {
                 // For any other errors, still show success message (security)
                 setIsSuccess(true);
                 setCooldownSeconds(60);
-                setRedirectSeconds(5);
+                setRedirectSeconds(10);
             }
         } finally {
             setIsLoading(false);

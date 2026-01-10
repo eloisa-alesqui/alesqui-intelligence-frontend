@@ -58,7 +58,7 @@ const ResetPasswordPage: React.FC = () => {
         validateToken(tokenParam);
     }, [searchParams]);
 
-    // Auto-redirect timer (3 seconds after success)
+    // Auto-redirect timer (5 seconds after success)
     useEffect(() => {
         if (redirectSeconds > 0) {
             const timer = setTimeout(() => {
@@ -136,7 +136,7 @@ const ResetPasswordPage: React.FC = () => {
             });
 
             setIsSuccess(true);
-            setRedirectSeconds(3);
+            setRedirectSeconds(5);
         } catch (err: any) {
             console.error('Password reset error:', err);
             
