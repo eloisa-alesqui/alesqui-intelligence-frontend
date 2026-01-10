@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogIn, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Eye, EyeOff, CheckCircle } from 'lucide-react';
 
 // Import your logo image. Adjust the path if necessary.
 import logo from '../assets/logo.png'; // Make sure this path is correct
@@ -15,11 +15,28 @@ const LoginPage: React.FC = () => {
     const [username, setUsername] = useState(''); // Corrected: back to username
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     
     const { login } = useAuth();
     const navigate = useNavigate();
+
+    // Check for password reset success message
+    useEffect(() => {
+        const resetSuccess = sessionStorage.getItem('passwordResetSuccess');
+        if (resetSuccess === 'true') {
+            setSuccessMessage('Password successfully reset! You can now log in with your new password.');
+            sessionStorage.removeItem('passwordResetSuccess');
+            
+            // Clear success message after 10 seconds
+            const timer = setTimeout(() => {
+                setSuccessMessage('');
+            }, 10000);
+            
+            return () => clearTimeout(timer);
+        }
+    }, []);
 
     /**
      * Handles the form submission for user login.
@@ -29,6 +46,7 @@ const LoginPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setSuccessMessage(''); // Clear success message on new login attempt
         setIsLoading(true);
 
         try {
@@ -128,6 +146,21 @@ const LoginPage: React.FC = () => {
                         </div>
                     </div>
 
+                    {successMessage && (
+                        <div className="rounded-md bg-green-50 p-4">
+                            <div className="flex">
+                                <div className="flex-shrink-0">
+                                    <CheckCircle className="h-5 w-5 text-green-400" />
+                                </div>
+                                <div className="ml-3">
+                                    <p className="text-sm text-green-800">
+                                        {successMessage}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {error && (
                         <p className="mt-2 text-sm text-red-600 text-center">
                             {error}
@@ -154,6 +187,18 @@ const LoginPage: React.FC = () => {
                                     Log In
                                 </>
                             )}
+                        </button>
+                    </div>
+
+                    {/* Forgot Password Link */}
+                    <div className="text-center">
+                        <button
+                            type="button"
+                            onClick={() => navigate('/forgot-password')}
+                            className="text-sm text-gray-600 hover:text-blue-600 underline transition-colors"
+                            disabled={isLoading}
+                        >
+                            Forgot your password?
                         </button>
                     </div>
                 </form>

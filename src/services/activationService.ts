@@ -17,6 +17,33 @@ export interface ActivateAccountResponse {
     message: string;
 }
 
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ForgotPasswordResponse {
+    success: boolean;
+    message: string;
+    email: string;
+}
+
+export interface ValidateResetTokenResponse {
+    valid: boolean;
+    email?: string;
+    expired?: boolean;
+    message?: string;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+    success: boolean;
+    message: string;
+}
+
 class ActivationService {
     private base = '/api/auth';
 
@@ -55,6 +82,45 @@ class ActivationService {
         const { data } = await apiClient.post<{ message: string }>(
             `${this.base}/resend-activation`,
             { email }
+        );
+        return data;
+    }
+
+    /**
+     * Requests a password reset link
+     * @param request - User's email address
+     * @returns Response with success status and message
+     */
+    async forgotPassword(request: ForgotPasswordRequest): Promise<ForgotPasswordResponse> {
+        const { data } = await apiClient.post<ForgotPasswordResponse>(
+            `${this.base}/forgot-password`,
+            request
+        );
+        return data;
+    }
+
+    /**
+     * Validates a password reset token
+     * @param token - The reset token from the URL
+     * @returns Token validation response with user email if valid
+     */
+    async validateResetToken(token: string): Promise<ValidateResetTokenResponse> {
+        const { data } = await apiClient.get<ValidateResetTokenResponse>(
+            `${this.base}/validate-reset-token`,
+            { params: { token } }
+        );
+        return data;
+    }
+
+    /**
+     * Resets user password using a valid token
+     * @param request - Token and new password
+     * @returns Reset result
+     */
+    async resetPassword(request: ResetPasswordRequest): Promise<ResetPasswordResponse> {
+        const { data } = await apiClient.post<ResetPasswordResponse>(
+            `${this.base}/reset-password`,
+            request
         );
         return data;
     }
