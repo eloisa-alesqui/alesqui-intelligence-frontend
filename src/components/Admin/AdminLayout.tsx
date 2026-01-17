@@ -1,13 +1,14 @@
 import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Layers, Users, Settings, UserCog } from 'lucide-react';
+import { Layers, Users, Settings, UserCog, FileText } from 'lucide-react';
 
 interface AdminLayoutProps {}
 
 const AdminLayout: React.FC<AdminLayoutProps> = () => {
   const menuItems = [
     { to: '/admin/groups', label: 'Groups', icon: Layers },
-    { to: '/admin/users', label: 'Users', icon: Users }
+    { to: '/admin/users', label: 'Users', icon: Users },
+    { to: '/admin/audit-logs', label: 'Audit Logs', icon: FileText }
   ];
 
   return (

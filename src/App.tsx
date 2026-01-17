@@ -19,6 +19,8 @@ import GroupList from './components/Admin/Groups/GroupList';
 import GroupDetail from './components/Admin/Groups/GroupDetail';
 import UserList from './components/Admin/Users/UserList';
 import UserDetail from './components/Admin/Users/UserDetail';
+import AuditLogList from './components/Admin/Audit/AuditLogList';
+import AuditLogDetail from './components/Admin/Audit/AuditLogDetail';
 
 /**
  * The main application component.
@@ -64,6 +66,8 @@ const AlesquiIntelligenceApp: React.FC = () => {
                             <Route path="groups/:groupId" element={<GroupDetail />} />
                             <Route path="users" element={<UserList />} />
                             <Route path="users/:userId" element={<UserDetail />} />
+                            <Route path="audit-logs" element={<AuditLogList />} />
+                            <Route path="audit-logs/:logId" element={<AuditLogDetail />} />
                         </Route>
                     </Route>
 

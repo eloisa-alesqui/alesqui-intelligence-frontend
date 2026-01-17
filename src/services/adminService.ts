@@ -87,6 +87,102 @@ export interface GroupDetailResponse extends GroupSummaryResponse {
     users: UserSummaryResponse[];
 }
 
+// ---- Audit Types ----
+export enum AuditAction {
+    USER_CREATED = 'USER_CREATED',
+    USER_UPDATED = 'USER_UPDATED',
+    USER_DELETED = 'USER_DELETED',
+    USER_ACTIVATED = 'USER_ACTIVATED',
+    USER_DEACTIVATED = 'USER_DEACTIVATED',
+    USER_PASSWORD_CHANGED = 'USER_PASSWORD_CHANGED',
+    USER_ROLES_CHANGED = 'USER_ROLES_CHANGED',
+    USER_ASSIGNED_TO_GROUP = 'USER_ASSIGNED_TO_GROUP',
+    USER_REMOVED_FROM_GROUP = 'USER_REMOVED_FROM_GROUP',
+    GROUP_CREATED = 'GROUP_CREATED',
+    GROUP_UPDATED = 'GROUP_UPDATED',
+    GROUP_DELETED = 'GROUP_DELETED',
+    GROUP_USERS_ASSIGNED = 'GROUP_USERS_ASSIGNED',
+    GROUP_USER_REMOVED = 'GROUP_USER_REMOVED',
+    GROUP_APIS_ASSIGNED = 'GROUP_APIS_ASSIGNED',
+    GROUP_API_REMOVED = 'GROUP_API_REMOVED',
+    API_CREATED = 'API_CREATED',
+    API_UPDATED = 'API_UPDATED',
+    API_DELETED = 'API_DELETED',
+    API_ASSIGNED_TO_GROUP = 'API_ASSIGNED_TO_GROUP',
+    API_REMOVED_FROM_GROUP = 'API_REMOVED_FROM_GROUP',
+    AUTH_LOGIN_SUCCESS = 'AUTH_LOGIN_SUCCESS',
+    AUTH_LOGIN_FAILURE = 'AUTH_LOGIN_FAILURE',
+    AUTH_LOGOUT = 'AUTH_LOGOUT',
+    AUTH_TOKEN_REFRESH = 'AUTH_TOKEN_REFRESH',
+    AUTH_PASSWORD_RESET_REQUESTED = 'AUTH_PASSWORD_RESET_REQUESTED',
+    AUTH_PASSWORD_RESET_COMPLETED = 'AUTH_PASSWORD_RESET_COMPLETED'
+}
+
+export enum EntityType {
+    USER = 'USER',
+    GROUP = 'GROUP',
+    API = 'API',
+    GROUP_MEMBERSHIP = 'GROUP_MEMBERSHIP',
+    API_GROUP_LINK = 'API_GROUP_LINK'
+}
+
+export enum AuditResult {
+    SUCCESS = 'SUCCESS',
+    FAILURE = 'FAILURE'
+}
+
+export interface AuditLogSummary {
+    id: string;
+    timestamp: string;
+    actorUsername: string;
+    action: AuditAction;
+    actionDescription: string;
+    entityType: EntityType;
+    entityName: string;
+    result: AuditResult;
+}
+
+export interface AuditLogDetail {
+    id: string;
+    timestamp: string;
+    actorUsername: string;
+    actorUserId: string;
+    action: AuditAction;
+    actionDescription: string;
+    entityType: EntityType;
+    entityId: string;
+    entityName: string;
+    details?: string;
+    ipAddress: string;
+    userAgent?: string;
+    result: AuditResult;
+    errorMessage?: string;
+    previousData?: string;
+    newData?: string;
+}
+
+export interface AuditStats {
+    totalLogs: number;
+    successCount: number;
+    failureCount: number;
+    actionCounts: Record<string, number>;
+    entityTypeCounts: Record<string, number>;
+    userActivityCounts: Record<string, number>;
+    lastActivityTime: string;
+}
+
+export interface PagedResponse<T> {
+    content: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+    hasNext: boolean;
+    hasPrevious: boolean;
+}
+
 // ---- Service ----
 class AdminService {
     private base = '/api/admin';
@@ -230,6 +326,99 @@ class AdminService {
             console.error(`Error fetching groups for API ${apiId}:`, error);
             return [];
         }
+    }
+
+    /**
+     * Fetches recent audit logs with optional limit
+     */
+    async getRecentAuditLogs(limit: number = 100): Promise<AuditLogSummary[]> {
+        const { data } = await apiClient.get<AuditLogSummary[]>(
+            `${this.base}/audit-logs/recent`, 
+            { params: { limit } }
+        );
+        return data;
+    }
+
+    /**
+     * Fetches audit logs for a specific user with pagination
+     */
+    async getAuditLogsByUser(
+        username: string, 
+        page: number = 0, 
+        size: number = 50
+    ): Promise<PagedResponse<AuditLogDetail>> {
+        const { data } = await apiClient.get<PagedResponse<AuditLogDetail>>(
+            `${this.base}/audit-logs/user/${username}`,
+            { params: { page, size } }
+        );
+        return data;
+    }
+
+    /**
+     * Fetches audit logs for a specific entity with pagination
+     */
+    async getAuditLogsByEntity(
+        entityType: EntityType, 
+        entityId: string,
+        page: number = 0,
+        size: number = 50
+    ): Promise<PagedResponse<AuditLogDetail>> {
+        const { data } = await apiClient.get<PagedResponse<AuditLogDetail>>(
+            `${this.base}/audit-logs/entity/${entityType}/${entityId}`,
+            { params: { page, size } }
+        );
+        return data;
+    }
+
+    /**
+     * Fetches audit logs by action type with pagination
+     */
+    async getAuditLogsByAction(
+        action: AuditAction,
+        page: number = 0,
+        size: number = 50
+    ): Promise<PagedResponse<AuditLogSummary>> {
+        const { data } = await apiClient.get<PagedResponse<AuditLogSummary>>(
+            `${this.base}/audit-logs/action/${action}`,
+            { params: { page, size } }
+        );
+        return data;
+    }
+
+    /**
+     * Fetches audit logs within a date range with pagination
+     */
+    async getAuditLogsByDateRange(
+        startDate: string, 
+        endDate: string,
+        page: number = 0,
+        size: number = 50
+    ): Promise<PagedResponse<AuditLogSummary>> {
+        const { data } = await apiClient.get<PagedResponse<AuditLogSummary>>(
+            `${this.base}/audit-logs/date-range`,
+            { params: { startDate, endDate, page, size } }
+        );
+        return data;
+    }
+
+    /**
+     * Fetches detailed information about a specific audit log
+     */
+    async getAuditLogById(logId: string): Promise<AuditLogDetail> {
+        const { data } = await apiClient.get<AuditLogDetail>(
+            `${this.base}/audit-logs/${logId}`
+        );
+        return data;
+    }
+
+    /**
+     * Fetches audit statistics
+     */
+    async getAuditStats(): Promise<AuditStats> {
+        const { data } = await apiClient.get<AuditStats>(
+            `${this.base}/audit-logs/stats`
+        );
+        return data;
     }
 }
 

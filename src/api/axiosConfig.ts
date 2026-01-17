@@ -1,4 +1,59 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+
+// Token refresh state management
+let isRefreshing = false;
+let failedQueue: Array<{
+    resolve: (value?: any) => void;
+    reject: (reason?: any) => void;
+}> = [];
+
+/**
+ * Process all queued requests after token refresh completes
+ */
+const processQueue = (error: any = null, token: string | null = null) => {
+    failedQueue.forEach((prom) => {
+        if (error) {
+            prom.reject(error);
+        } else {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+/**
+ * Refresh the access token using the refresh token
+ */
+const refreshAccessToken = async (): Promise<string> => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+        throw new Error('No refresh token available');
+    }
+
+    try {
+        const response = await axios.post(
+            `${API_BASE_URL || ''}/api/auth/refresh`,
+            { refreshToken },
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        
+        localStorage.setItem('accessToken', accessToken);
+        if (newRefreshToken) {
+            localStorage.setItem('refreshToken', newRefreshToken);
+        }
+        
+        return accessToken;
+    } catch (error) {
+        // Refresh token expired or invalid → clear storage and redirect to login
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        window.location.href = '/login';
+        throw error;
+    }
+};
 
 /**
  * Creates and configures a single, centralized Axios instance for the entire application.
@@ -63,13 +118,10 @@ apiClient.interceptors.request.use(
 /**
  * Response Interceptor
  *
- * This function is executed after a response is received from the API.
- * It's the ideal place to implement logic for handling global errors.
- *
- * For example, this is where you would handle a 401 Unauthorized error,
- * which typically means the access token has expired. In a future step,
- * you could add logic here to use the 'refreshToken' to silently request a new
- * 'accessToken' and then retry the original failed request.
+ * Handles global error responses, particularly 401 Unauthorized errors.
+ * When a 401 is received, automatically attempts to refresh the access token
+ * and retry the original request. Includes race condition handling to prevent
+ * multiple simultaneous refresh attempts.
  */
 apiClient.interceptors.response.use(
     (response) => {
@@ -77,17 +129,59 @@ apiClient.interceptors.response.use(
         return response;
     },
     async (error) => {
-        // Any status codes that fall outside the range of 2xx cause this function to trigger.
-        console.error("API call error:", error);
-        
-        // FUTURE: Add refresh token logic here.
-        // const originalRequest = error.config;
-        // if (error.response.status === 401 && !originalRequest._retry) {
-        //   originalRequest._retry = true;
-        //   // ... call refresh token endpoint ...
-        //   return apiClient(originalRequest);
-        // }
+        const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+        // Check if this is a 401 error and we haven't already retried
+        if (error.response?.status === 401 && !originalRequest._retry) {
+            // Prevent infinite loops on the refresh endpoint itself
+            if (originalRequest.url?.includes('/api/auth/refresh')) {
+                return Promise.reject(error);
+            }
+
+            // If a refresh is already in progress, queue this request
+            if (isRefreshing) {
+                return new Promise((resolve, reject) => {
+                    failedQueue.push({ resolve, reject });
+                })
+                    .then((token) => {
+                        if (originalRequest.headers) {
+                            originalRequest.headers.Authorization = `Bearer ${token}`;
+                        }
+                        return apiClient(originalRequest);
+                    })
+                    .catch((err) => {
+                        return Promise.reject(err);
+                    });
+            }
+
+            // Mark this request as retried to prevent infinite loops
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            try {
+                // Attempt to refresh the access token
+                const newAccessToken = await refreshAccessToken();
+                
+                // Process all queued requests with the new token
+                processQueue(null, newAccessToken);
+                
+                // Update the original request with the new token
+                if (originalRequest.headers) {
+                    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+                }
+                
+                // Retry the original request
+                return apiClient(originalRequest);
+            } catch (refreshError) {
+                // Refresh failed - reject all queued requests
+                processQueue(refreshError, null);
+                return Promise.reject(refreshError);
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
+        // For all other errors, just reject
         return Promise.reject(error);
     }
 );

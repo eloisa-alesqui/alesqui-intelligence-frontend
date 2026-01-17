@@ -16,7 +16,7 @@ interface AuthContextType {
     user: UserPayload | null;
     isAuthenticated: boolean;
     login: (username: string, password: string) => Promise<boolean>;
-    logout: () => void;
+    logout: () => Promise<void>;
 }
 
 // Create the context with the defined type
@@ -59,11 +59,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
-    const logout = (): void => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        setToken(null);
-        setUser(null);
+    const logout = async (): Promise<void> => {
+        try {
+            // Call backend logout endpoint for audit logging
+            await apiClient.post('/api/auth/logout');
+        } catch (error) {
+            // Don't fail logout if backend call fails
+            console.warn("Logout audit logging failed:", error);
+        } finally {
+            // Always clear local storage and state
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            setToken(null);
+            setUser(null);
+        }
     };
 
     const authContextValue = useMemo<AuthContextType>(() => ({
