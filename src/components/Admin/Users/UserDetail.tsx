@@ -1,26 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { adminService, UserDetail as UserDetailType, Group } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
-import { User, Layers, Shield, Save, Loader2, X, Mail, Lock, CheckCircle, XCircle, Trash2, Search, Plus, Info } from 'lucide-react';
+import { useDeployment } from '../../../context/DeploymentContext';
+import { User, Layers, Shield, Save, Loader2, X, Mail, CheckCircle, XCircle, Trash2, Search, Plus, Info } from 'lucide-react';
 
 const UserDetail: React.FC = () => {
     const { userId } = useParams();
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
     const { user: currentUser } = useAuth();
+    const { isCorporateMode } = useDeployment();
     const [data, setData] = useState<UserDetailType | null>(null);
     const [draft, setDraft] = useState<{ username: string; roles: string[] } | null>(null);
     const [loading, setLoading] = useState(true);
     const [tab, setTab] = useState<'info' | 'groups' | 'security'>('info');
     const [saving, setSaving] = useState(false);
-
-    // Password change state
-    const [showPasswordChange, setShowPasswordChange] = useState(false);
-    const [newPassword, setNewPassword] = useState('');
-    const [passwordError, setPasswordError] = useState<string>('');
-    const [changingPassword, setChangingPassword] = useState(false);
 
     // Group assignment state
     const [groupAssignOpen, setGroupAssignOpen] = useState(false);
@@ -33,12 +29,22 @@ const UserDetail: React.FC = () => {
     // Remove group state
     const [removingGroupId, setRemovingGroupId] = useState<string | null>(null);
 
-    const availableRoles = [
+    const allRoles = [
         { value: 'ROLE_SUPERADMIN', label: 'Super Admin', description: 'Full system access, user management, and configuration' },
         { value: 'ROLE_IT', label: 'IT', description: 'API configuration, diagnostics, and technical management' },
         { value: 'ROLE_BUSINESS', label: 'Business', description: 'Business user access to assigned APIs' },
         { value: 'ROLE_TRIAL', label: 'Trial', description: 'Limited trial access to the system' }
     ];
+
+    // Filter roles based on deployment mode:
+    // In CORPORATE mode, exclude ROLE_TRIAL
+    // In TRIAL mode, include all roles
+    const availableRoles = useMemo(() => {
+        if (isCorporateMode) {
+            return allRoles.filter(role => role.value !== 'ROLE_TRIAL');
+        }
+        return allRoles;
+    }, [isCorporateMode]);
 
     const load = async () => {
         if (!userId) return;
@@ -86,45 +92,14 @@ const UserDetail: React.FC = () => {
         fetchGroups();
     }, [groupAssignOpen, groupAssignSearch, data?.groups]);
 
-    const validateEmail = (email: string): boolean => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
 
-    const validatePassword = (pwd: string): string | null => {
-        if (pwd.length < 8) return 'Password must be at least 8 characters';
-        if (!/[a-z]/.test(pwd)) return 'Password must contain a lowercase letter';
-        if (!/[A-Z]/.test(pwd)) return 'Password must contain an uppercase letter';
-        if (!/\d/.test(pwd)) return 'Password must contain a number';
-        if (!/[^a-zA-Z0-9]/.test(pwd)) return 'Password must contain a special character';
-        return null;
-    };
-
-    const getPasswordStrength = (pwd: string): { score: number; label: string; color: string } => {
-        let score = 0;
-        if (pwd.length >= 8) score++;
-        if (pwd.length >= 12) score++;
-        if (/[a-z]/.test(pwd) && /[A-Z]/.test(pwd)) score++;
-        if (/\d/.test(pwd)) score++;
-        if (/[^a-zA-Z0-9]/.test(pwd)) score++;
-
-        if (score <= 1) return { score, label: 'Weak', color: 'text-red-600' };
-        if (score <= 3) return { score, label: 'Moderate', color: 'text-amber-600' };
-        return { score, label: 'Strong', color: 'text-green-600' };
-    };
 
     const isDirty = !!(data && draft && (
-        draft.username !== data.username ||
         JSON.stringify([...draft.roles].sort()) !== JSON.stringify([...data.roles].sort())
     ));
 
     const handleSave = async () => {
         if (!data || !draft || !userId) return;
-
-        if (!validateEmail(draft.username)) {
-            addNotification('Invalid email format', 'error');
-            return;
-        }
 
         if (draft.roles.length === 0) {
             addNotification('At least one role is required', 'error');
@@ -134,7 +109,6 @@ const UserDetail: React.FC = () => {
         try {
             setSaving(true);
             await adminService.updateUser(userId, {
-                username: draft.username !== data.username ? draft.username : undefined,
                 roles: JSON.stringify([...draft.roles].sort()) !== JSON.stringify([...data.roles].sort()) ? draft.roles : undefined,
             });
             addNotification('User updated successfully', 'success');
@@ -146,28 +120,7 @@ const UserDetail: React.FC = () => {
         }
     };
 
-    const handlePasswordChange = async () => {
-        if (!userId) return;
 
-        const pwdError = validatePassword(newPassword);
-        if (pwdError) {
-            setPasswordError(pwdError);
-            return;
-        }
-
-        try {
-            setChangingPassword(true);
-            await adminService.updateUser(userId, { password: newPassword });
-            addNotification('Password changed successfully', 'success');
-            setNewPassword('');
-            setShowPasswordChange(false);
-            setPasswordError('');
-        } catch (e: any) {
-            addNotification(e.message || 'Error changing password', 'error');
-        } finally {
-            setChangingPassword(false);
-        }
-    };
 
     const selectRole = (role: string) => {
         if (!draft) return;
@@ -219,8 +172,6 @@ const UserDetail: React.FC = () => {
     if (!data || !draft) return (
         <div className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">User not found</div>
     );
-
-    const passwordStrength = newPassword ? getPasswordStrength(newPassword) : null;
 
     return (
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -276,114 +227,29 @@ const UserDetail: React.FC = () => {
                                 </label>
                                 <input
                                     type="email"
-                                    value={draft.username}
-                                    onChange={e => setDraft(prev => prev ? { ...prev, username: e.target.value } : prev)}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={data.username}
+                                    disabled
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
                                 />
                                 <p className="mt-1 text-xs text-gray-500">This email serves as the username for login</p>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">User ID</label>
-                                <input
-                                    type="text"
-                                    value={data.id}
-                                    disabled
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                                />
-                            </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Created</label>
-                        <input
-                            type="text"
-                            value={data.createdAt ? new Date(data.createdAt).toLocaleString() : 'N/A'}
-                            disabled
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                        />
-                    </div>
-
-                    <div className="border-t pt-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                                <Lock className="w-5 h-5 text-gray-600" />
-                                Password Management
-                            </h3>
-                            {!showPasswordChange && (
-                                <button
-                                    onClick={() => setShowPasswordChange(true)}
-                                    className="text-sm text-blue-600 hover:text-blue-800"
-                                >
-                                    Change Password
-                                </button>
-                            )}
-                        </div>
-
-                        {showPasswordChange && (
-                            <div className="space-y-4 p-4 bg-gray-50 rounded-lg border">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
-                                    <input
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={e => {
-                                            setNewPassword(e.target.value);
-                                            setPasswordError('');
-                                        }}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        placeholder="••••••••"
-                                    />
-
-                                    {newPassword && passwordStrength && (
-                                        <div className="mt-2">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full transition-all ${passwordStrength.score <= 1 ? 'bg-red-500 w-1/4' :
-                                                                passwordStrength.score <= 3 ? 'bg-amber-500 w-2/4' :
-                                                                    'bg-green-500 w-full'
-                                                            }`}
-                                                    />
-                                                </div>
-                                                <span className={`text-xs font-medium ${passwordStrength.color}`}>
-                                                    {passwordStrength.label}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {passwordError && (
-                                        <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
-                                            <XCircle className="w-3.5 h-3.5" />
-                                            {passwordError}
-                                        </p>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                                <div className="flex items-center gap-2">
+                                    {data.active ? (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-green-100 text-green-800 border border-green-200 rounded text-sm font-medium">
+                                            <CheckCircle className="w-4 h-4" />
+                                            Active
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-100 text-amber-800 border border-amber-200 rounded text-sm font-medium">
+                                            <XCircle className="w-4 h-4" />
+                                            Pending
+                                        </span>
                                     )}
                                 </div>
-
-                                <div className="flex justify-end gap-3">
-                                    <button
-                                        onClick={() => {
-                                            setShowPasswordChange(false);
-                                            setNewPassword('');
-                                            setPasswordError('');
-                                        }}
-                                        disabled={changingPassword}
-                                        className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handlePasswordChange}
-                                        disabled={changingPassword || !newPassword}
-                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-                                    >
-                                        {changingPassword && <Loader2 className="w-4 h-4 animate-spin" />}
-                                        Update Password
-                                    </button>
-                                </div>
                             </div>
-                        )}
-                    </div>
                         </div>
                     )}
 

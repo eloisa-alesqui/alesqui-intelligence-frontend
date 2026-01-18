@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { adminService } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
+import { useDeployment } from '../../../context/DeploymentContext';
 import { X, Loader2, Mail, Shield, CheckCircle, XCircle, UserPlus, Info } from 'lucide-react';
 
 interface CreateUserModalProps {
@@ -10,17 +11,28 @@ interface CreateUserModalProps {
 
 const CreateUserModal: React.FC<CreateUserModalProps> = ({ onClose, onCreated }) => {
     const { addNotification } = useNotifications();
+    const { isCorporateMode } = useDeployment();
     const [username, setUsername] = useState('');
-    const [roles, setRoles] = useState<string[]>(['ROLE_TRIAL']);
+    const [roles, setRoles] = useState<string[]>(['ROLE_BUSINESS']);
     const [submitting, setSubmitting] = useState(false);
     const [errors, setErrors] = useState<{ username?: string; roles?: string }>({});
 
-    const availableRoles = [
+    const allRoles = [
         { value: 'ROLE_SUPERADMIN', label: 'Super Admin', description: 'Full system access, user management, and configuration' },
         { value: 'ROLE_IT', label: 'IT', description: 'API configuration, diagnostics, and technical management' },
         { value: 'ROLE_BUSINESS', label: 'Business', description: 'Business user access to assigned APIs' },
         { value: 'ROLE_TRIAL', label: 'Trial', description: 'Limited trial access to the system' }
     ];
+
+    // Filter roles based on deployment mode:
+    // In CORPORATE mode, exclude ROLE_TRIAL
+    // In TRIAL mode, include all roles
+    const availableRoles = useMemo(() => {
+        if (isCorporateMode) {
+            return allRoles.filter(role => role.value !== 'ROLE_TRIAL');
+        }
+        return allRoles;
+    }, [isCorporateMode]);
 
     const validateEmail = (email: string): boolean => {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { adminService, User } from '../../../services/adminService';
 import { useNotifications } from '../../../context/NotificationContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useDeployment } from '../../../context/DeploymentContext';
 import CreateUserModal from './CreateUserModal';
 import { Loader2, AlertCircle, Inbox, Mail, Search, Plus, ChevronUp, ChevronDown, Trash2, Shield, CheckCircle } from 'lucide-react';
 
 const UserList: React.FC = () => {
     const { addNotification } = useNotifications();
     const { user: currentUser } = useAuth();
+    const { isCorporateMode } = useDeployment();
     const navigate = useNavigate();
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
@@ -296,7 +298,8 @@ const UserList: React.FC = () => {
                         <option value="ROLE_SUPERADMIN">Super Admin</option>
                         <option value="ROLE_IT">IT</option>
                         <option value="ROLE_BUSINESS">Business</option>
-                        <option value="ROLE_TRIAL">Trial</option>
+                        {/* Only show ROLE_TRIAL option in TRIAL mode */}
+                        {!isCorporateMode && <option value="ROLE_TRIAL">Trial</option>}
                     </select>
                 </div>
 

@@ -4,11 +4,14 @@ import './index.css'
 import AlesquiIntelligenceApp from './App.tsx'
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
+import { DeploymentProvider } from './context/DeploymentContext';
 
 createRoot(document.getElementById('root')).render(
-    <AuthProvider>
-      <NotificationProvider>
-        <AlesquiIntelligenceApp />
-      </NotificationProvider>
-    </AuthProvider>
+    <DeploymentProvider>
+      <AuthProvider>
+        <NotificationProvider>
+          <AlesquiIntelligenceApp />
+        </NotificationProvider>
+      </AuthProvider>
+    </DeploymentProvider>
 )

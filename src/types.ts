@@ -11,6 +11,16 @@ export interface ApiFormState {
     postmanUploaded: boolean;
 }
 
+/**
+ * Represents the deployment information for the application.
+ * Determines whether the app is running in TRIAL or CORPORATE mode.
+ */
+export interface DeploymentInfo {
+    mode: 'TRIAL' | 'CORPORATE';
+    companyName: string;
+    selfRegistrationEnabled: boolean;
+}
+
 export interface SchemaProperty {
     // Basic properties
     type?: string;

@@ -179,10 +179,6 @@ const AuditLogDetail: React.FC = () => {
                             <dt className="text-sm font-medium text-gray-500">Username</dt>
                             <dd className="mt-1 text-sm text-gray-900 font-semibold">{log.actorUsername}</dd>
                         </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-500">User ID</dt>
-                            <dd className="mt-1 text-sm text-gray-900 font-mono">{log.actorUserId}</dd>
-                        </div>
                     </dl>
                 </div>
 
@@ -200,10 +196,6 @@ const AuditLogDetail: React.FC = () => {
                         <div>
                             <dt className="text-sm font-medium text-gray-500">Entity Name</dt>
                             <dd className="mt-1 text-sm text-gray-900 font-semibold">{log.entityName}</dd>
-                        </div>
-                        <div>
-                            <dt className="text-sm font-medium text-gray-500">Entity ID</dt>
-                            <dd className="mt-1 text-sm text-gray-900 font-mono">{log.entityId}</dd>
                         </div>
                     </dl>
                 </div>
