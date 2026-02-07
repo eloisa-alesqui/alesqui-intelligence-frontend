@@ -8,8 +8,8 @@ El workflow `docker-publish.yml` construye y publica automáticamente imágenes 
 
 El workflow se activa automáticamente en los siguientes casos:
 
-- **Push a rama `master`**: Construye y publica con tag `latest`
-- **Push de tag de versión** (ej: `v1.0.0`): Publica con tags semánticos (`1.0.0`, `1.0`, `latest`)
+- **Push a rama `master`**: Construye y publica con tags `latest` y `master`
+- **Push de tag de versión** (ej: `v1.0.0`): Publica con tags semánticos (`1.0.0`, `1.0`)
 - **Trigger manual**: Desde la pestaña "Actions" usando "workflow_dispatch"
 
 ### 🏷️ Tags de Docker
@@ -38,7 +38,6 @@ git push origin v1.0.0
 # El workflow se ejecutará automáticamente y publicará:
 # - alesquiintelligence/frontend:1.0.0
 # - alesquiintelligence/frontend:1.0
-# - alesquiintelligence/frontend:latest
 ```
 
 #### Para publicar desde master:
