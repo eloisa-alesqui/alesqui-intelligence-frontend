@@ -2,94 +2,94 @@
 
 ## Docker Publishing Workflow
 
-El workflow `docker-publish.yml` construye y publica automáticamente imágenes Docker en Docker Hub.
+The `docker-publish.yml` workflow automatically builds and publishes Docker images to Docker Hub.
 
-### 🚀 Funcionamiento
+### 🚀 How It Works
 
-El workflow se activa automáticamente en los siguientes casos:
+The workflow is automatically triggered in the following cases:
 
-- **Push a rama `master`**: Construye y publica con tags `latest` y `master`
-- **Push de tag de versión** (ej: `v1.0.0`): Publica con tags semánticos (`1.0.0`, `1.0`)
-- **Trigger manual**: Desde la pestaña "Actions" usando "workflow_dispatch"
+- **Push to `master` branch**: Builds and publishes with `latest` and `master` tags
+- **Push version tag** (e.g., `v1.0.0`): Publishes with semantic tags (`1.0.0`, `1.0`)
+- **Manual trigger**: From the "Actions" tab using "workflow_dispatch"
 
-### 🏷️ Tags de Docker
+### 🏷️ Docker Tags
 
-El workflow genera los siguientes tags:
+The workflow generates the following tags:
 
-- `latest` - Última versión de la rama principal
-- `master` - Identificador de rama principal
-- `1.0.0` - Versión semántica completa (cuando se pushea un tag v1.0.0)
-- `1.0` - Versión major.minor (cuando se pushea un tag)
-- `master-<sha>` - Rama con commit SHA
+- `latest` - Latest version from the main branch
+- `master` - Main branch identifier
+- `1.0.0` - Full semantic version (when pushing a v1.0.0 tag)
+- `1.0` - Major.minor version (when pushing a tag)
+- `master-<sha>` - Branch with commit SHA
 
-### 📦 Ubicación de la Imagen
+### 📦 Image Location
 
-Las imágenes se publican en: https://hub.docker.com/r/alesquiintelligence/frontend
+Images are published to: https://hub.docker.com/r/alesquiintelligence/frontend
 
-### 🔧 Uso
+### 🔧 Usage
 
-#### Para publicar una nueva versión con tag:
+#### To publish a new version with a tag:
 
 ```bash
-# Crear y pushear tag de versión
+# Create and push a version tag
 git tag v1.0.0
 git push origin v1.0.0
 
-# El workflow se ejecutará automáticamente y publicará:
+# The workflow will automatically run and publish:
 # - alesquiintelligence/frontend:1.0.0
 # - alesquiintelligence/frontend:1.0
 ```
 
-#### Para publicar desde master:
+#### To publish from master:
 
 ```bash
-# Simplemente hacer push a master
+# Simply push to master
 git push origin master
 
-# El workflow publicará:
+# The workflow will publish:
 # - alesquiintelligence/frontend:latest
 # - alesquiintelligence/frontend:master
 # - alesquiintelligence/frontend:master-<commit-sha>
 ```
 
-#### Para ejecutar manualmente:
+#### To run manually:
 
-1. Ve a la pestaña "Actions" en GitHub
-2. Selecciona "Build and Push Docker Image"
-3. Click en "Run workflow"
-4. Selecciona la rama y ejecuta
+1. Go to the "Actions" tab on GitHub
+2. Select "Build and Push Docker Image"
+3. Click on "Run workflow"
+4. Select the branch and run
 
-### ✅ Verificación
+### ✅ Verification
 
-Después de que el workflow se complete exitosamente:
+After the workflow completes successfully:
 
-1. Ve a https://hub.docker.com/r/alesquiintelligence/frontend/tags
-2. Verifica que aparezcan los nuevos tags
-3. Prueba la imagen localmente:
+1. Go to https://hub.docker.com/r/alesquiintelligence/frontend/tags
+2. Verify that the new tags appear
+3. Test the image locally:
 
 ```bash
 docker pull alesquiintelligence/frontend:latest
 docker run -p 80:80 alesquiintelligence/frontend:latest
 ```
 
-### 🎯 Beneficios
+### 🎯 Benefits
 
-✅ **Totalmente automatizado** - Sin necesidad de `docker build`/`docker push` manual  
-✅ **Funciona en la nube** - No requiere Docker instalado localmente  
-✅ **Versionado automático** - Tags semánticos con git tags  
-✅ **Caché de builds** - GitHub Actions optimiza los tiempos de construcción  
-✅ **DevOps profesional** - Práctica estándar de CI/CD en la industria
+✅ **Fully automated** - No need for manual `docker build`/`docker push`  
+✅ **Cloud-based** - Doesn't require Docker installed locally  
+✅ **Automatic versioning** - Semantic tags with git tags  
+✅ **Build caching** - GitHub Actions optimizes build times  
+✅ **Professional DevOps** - Industry-standard CI/CD practice
 
 ### 🐛 Troubleshooting
 
-Si el workflow falla:
+If the workflow fails:
 
-1. **Verifica el secret**: Asegúrate de que `DOCKERHUB_TOKEN` esté configurado correctamente en Settings → Secrets and variables → Actions
-2. **Verifica el repositorio Docker Hub**: Confirma que existe `alesquiintelligence/frontend` en Docker Hub
-3. **Verifica permisos**: El token debe tener permisos de Read, Write, Delete
-4. **Revisa los logs**: Consulta los logs detallados en la pestaña "Actions"
+1. **Verify the secret**: Make sure `DOCKERHUB_TOKEN` is configured correctly in Settings → Secrets and variables → Actions
+2. **Verify Docker Hub repository**: Confirm that `alesquiintelligence/frontend` exists on Docker Hub
+3. **Verify permissions**: The token must have Read, Write, Delete permissions
+4. **Review the logs**: Check detailed logs in the "Actions" tab
 
-### 🔗 Recursos
+### 🔗 Resources
 
 - [Docker Hub Repository](https://hub.docker.com/r/alesquiintelligence/frontend)
 - [GitHub Actions Logs](../../actions/workflows/docker-publish.yml)
