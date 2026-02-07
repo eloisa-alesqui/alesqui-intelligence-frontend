@@ -18,7 +18,7 @@ El workflow genera los siguientes tags:
 
 - `latest` - Última versión de la rama principal
 - `master` - Identificador de rama principal
-- `v1.0.0` - Versión semántica completa (cuando se pushea un tag)
+- `1.0.0` - Versión semántica completa (cuando se pushea un tag v1.0.0)
 - `1.0` - Versión major.minor (cuando se pushea un tag)
 - `master-<sha>` - Rama con commit SHA
 
