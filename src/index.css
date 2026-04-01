@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* Expands touch target to 44x44px without affecting layout */
+.touch-target-44 {
+  position: relative;
+}
+.touch-target-44::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* On touch-only devices, always show hover-revealed elements */
+@media (hover: none) {
+  .touch-visible {
+    opacity: 0.6 !important;
+  }
+}
+
+@media (min-width: 640px) {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+}

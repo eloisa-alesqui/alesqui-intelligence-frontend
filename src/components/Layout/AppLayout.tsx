@@ -1,0 +1,33 @@
+import React from 'react';
+import { Outlet } from 'react-router-dom';
+import Header from './Header';
+import Notifications from './Notifications';
+import { useAuth } from '../../context/AuthContext';
+
+/**
+ * AppLayout serves as the main visual shell for all authenticated pages.
+ *
+ * It provides a consistent structure, including the application header and
+ * a main content area where child routes will be rendered.
+ */
+const AppLayout: React.FC = () => {
+    // Fetch the current user and logout function from the global AuthContext.
+    const { user, logout } = useAuth();
+
+    // The notification state will be managed by its own context (see explanation below).
+
+    return (
+        <div className="flex flex-col h-dvh bg-gray-50 overflow-hidden">
+            {/* The Header is part of the consistent layout for all authenticated views. */}
+            <Header user={user} onLogout={logout} />
+
+            <Notifications />
+
+            <main className="flex-1 overflow-y-auto custom-scrollbar">
+                <Outlet />
+            </main>
+        </div>
+    );
+};
+
+export default AppLayout;
