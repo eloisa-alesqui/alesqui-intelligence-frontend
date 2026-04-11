@@ -6,6 +6,13 @@ interface Props {
     user: DashboardUserInfo;
 }
 
+const getGreeting = (): string => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour <= 11) return 'Good morning';
+    if (hour >= 12 && hour <= 17) return 'Good afternoon';
+    return 'Good evening';
+};
+
 // Strips the "ROLE_" prefix and converts to title case (e.g. "ROLE_SUPERADMIN" → "Super Admin").
 const formatRole = (role: string): string => {
     const cleaned = role.replace(/^ROLE_/i, '');
@@ -35,7 +42,7 @@ const WelcomeHeader: React.FC<Props> = ({ user }) => {
                         <Sparkles className="w-5 h-5" />
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-                        Welcome, {user.username}
+                        {getGreeting()}, {user.username}
                     </h1>
                     {user.roles.map((role) => (
                         <span

@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserCog, Users, Database, Layers, Flag } from 'lucide-react';
 import { DashboardAdminInfo } from '../../types';
+import { useCountUp } from '../../hooks/useCountUp';
 
 interface Props {
     admin: DashboardAdminInfo;
@@ -27,6 +28,11 @@ const StatItem: React.FC<StatItemProps> = ({ icon, label, value, iconBg, iconCol
 );
 
 const AdminStatsCard: React.FC<Props> = ({ admin }) => {
+    const totalUsers = useCountUp(admin.totalUsers);
+    const totalApis = useCountUp(admin.totalApis);
+    const totalGroups = useCountUp(admin.totalGroups);
+    const openTickets = useCountUp(admin.openTickets);
+
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-2.5 mb-4">
@@ -39,28 +45,28 @@ const AdminStatsCard: React.FC<Props> = ({ admin }) => {
                 <StatItem
                     icon={<Users className="w-4 h-4" />}
                     label="Users"
-                    value={admin.totalUsers}
+                    value={totalUsers}
                     iconBg="bg-blue-50"
                     iconColor="text-blue-600"
                 />
                 <StatItem
                     icon={<Database className="w-4 h-4" />}
                     label="APIs"
-                    value={admin.totalApis}
+                    value={totalApis}
                     iconBg="bg-emerald-50"
                     iconColor="text-emerald-600"
                 />
                 <StatItem
                     icon={<Layers className="w-4 h-4" />}
                     label="Groups"
-                    value={admin.totalGroups}
+                    value={totalGroups}
                     iconBg="bg-violet-50"
                     iconColor="text-violet-600"
                 />
                 <StatItem
                     icon={<Flag className="w-4 h-4" />}
                     label="Tickets"
-                    value={admin.openTickets}
+                    value={openTickets}
                     iconBg="bg-amber-50"
                     iconColor="text-amber-600"
                 />

@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Loader2, AlertCircle } from 'lucide-react';
-import { DashboardSummaryResponse } from '../../types';
+import { DashboardSummaryResponse, TicketStats } from '../../types';
 import { dashboardService } from '../../services/dashboardService';
+import { diagnosticsService } from '../../services/diagnosticsService';
 import TrialBanner from './TrialBanner';
 import WelcomeHeader from './WelcomeHeader';
 import ActivitySummaryCards from './ActivitySummaryCards';
-import QuickActions from './QuickActions';
+import RecentConversations from './RecentConversations';
 import ApiListCard from './ApiListCard';
 import AdminStatsCard from './AdminStatsCard';
 import SupportStatsCard from './SupportStatsCard';
 
 const DashboardPage: React.FC = () => {
     const [data, setData] = useState<DashboardSummaryResponse | null>(null);
+    const [ticketStats, setTicketStats] = useState<TicketStats | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -19,8 +21,20 @@ const DashboardPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const result = await dashboardService.getSummary();
-            setData(result);
+            const [summary, stats] = await Promise.allSettled([
+                dashboardService.getSummary(),
+                diagnosticsService.getTicketStats(),
+            ]);
+
+            if (summary.status === 'fulfilled') {
+                setData(summary.value);
+            } else {
+                throw summary.reason;
+            }
+
+            if (stats.status === 'fulfilled') {
+                setTicketStats(stats.value);
+            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred');
         } finally {
@@ -69,14 +83,26 @@ const DashboardPage: React.FC = () => {
         <div className="overflow-y-auto">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 space-y-6">
                 {data.trial && <TrialBanner trial={data.trial} />}
-                <WelcomeHeader user={data.user} />
-                <ActivitySummaryCards activity={data.activity} />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <QuickActions lastConversation={data.activity.lastConversation} />
+                <div className="animate-fade-in-up stagger-1">
+                    <WelcomeHeader user={data.user} />
+                </div>
+                <div className="animate-fade-in-up stagger-2">
+                    <ActivitySummaryCards activity={data.activity} />
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up stagger-3">
+                    <RecentConversations />
                     <ApiListCard apis={data.apis} />
                 </div>
-                {data.admin && <AdminStatsCard admin={data.admin} />}
-                {data.support && <SupportStatsCard support={data.support} />}
+                {data.admin && (
+                    <div className="animate-fade-in-up stagger-4">
+                        <AdminStatsCard admin={data.admin} />
+                    </div>
+                )}
+                {data.support && (
+                    <div className="animate-fade-in-up stagger-5">
+                        <SupportStatsCard support={data.support} ticketStats={ticketStats} />
+                    </div>
+                )}
             </div>
         </div>
     );

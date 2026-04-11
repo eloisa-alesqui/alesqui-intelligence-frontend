@@ -1,6 +1,7 @@
 import apiClient from '../api/axiosConfig';
 // Import the new types
 import { ConversationDetail, ReasoningStep } from './chatService';
+import { TicketStats } from '../types';
 
 /**
  * Represents the Spring Pageable object for requests.
@@ -146,6 +147,14 @@ class DiagnosticsService {
             console.error('Error adding internal note:', error);
             throw new Error(error.response?.data?.message || 'Failed to add note');
         }
+    }
+
+    /**
+     * Fetches aggregated ticket counts grouped by status for the dashboard chart.
+     */
+    async getTicketStats(): Promise<TicketStats> {
+        const { data } = await apiClient.get<TicketStats>(`${this.baseUrl}/tickets/stats`);
+        return data;
     }
 
     /**

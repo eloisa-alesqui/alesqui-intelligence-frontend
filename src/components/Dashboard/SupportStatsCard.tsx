@@ -1,13 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, ArrowRight, AlertCircle } from 'lucide-react';
-import { DashboardSupportInfo } from '../../types';
+import { ShieldAlert, ArrowRight, Flag } from 'lucide-react';
+import { DashboardSupportInfo, TicketStats } from '../../types';
+import { useCountUp } from '../../hooks/useCountUp';
+import TicketStatsChart from './TicketStatsChart';
 
 interface Props {
     support: DashboardSupportInfo;
+    ticketStats?: TicketStats | null;
 }
 
-const SupportStatsCard: React.FC<Props> = ({ support }) => {
+const SupportStatsCard: React.FC<Props> = ({ support, ticketStats }) => {
+    const openTickets = useCountUp(support.openTickets);
+
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-2.5 mb-4">
@@ -18,12 +23,12 @@ const SupportStatsCard: React.FC<Props> = ({ support }) => {
             </div>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/70">
-                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-orange-50 text-orange-600">
-                        <AlertCircle className="w-4 h-4" />
+                    <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 text-amber-600">
+                        <Flag className="w-4 h-4" />
                     </div>
                     <div>
                         <span className="text-xs font-medium text-gray-500">Open tickets</span>
-                        <p className="text-xl font-bold text-gray-900">{support.openTickets}</p>
+                        <p className="text-xl font-bold text-gray-900">{openTickets}</p>
                     </div>
                 </div>
                 <Link
@@ -34,6 +39,12 @@ const SupportStatsCard: React.FC<Props> = ({ support }) => {
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-150" />
                 </Link>
             </div>
+            {ticketStats && (ticketStats.reportedByUser + ticketStats.errorProcessing + ticketStats.underReview + ticketStats.resolved) > 0 && (
+                <div className="mt-5">
+                    <p className="text-xs font-medium text-gray-500 mb-3">Tickets — Last 30 days</p>
+                    <TicketStatsChart stats={ticketStats} />
+                </div>
+            )}
         </div>
     );
 };

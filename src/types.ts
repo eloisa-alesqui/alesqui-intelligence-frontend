@@ -219,6 +219,15 @@ export interface ApiConfig {
     auth: AuthConfig;
 }
 
+// --- Diagnostics types ---
+
+export interface TicketStats {
+    reportedByUser: number;
+    errorProcessing: number;
+    underReview: number;
+    resolved: number;
+}
+
 // --- Dashboard types ---
 
 /**
