@@ -6,10 +6,13 @@ interface Props {
     user: DashboardUserInfo;
 }
 
-const roleColors: Record<string, string> = {
-    admin: 'bg-white/20 text-white border border-white/30',
-    user: 'bg-white/20 text-white border border-white/30',
-    support: 'bg-white/20 text-white border border-white/30',
+// Strips the "ROLE_" prefix and converts to title case (e.g. "ROLE_SUPERADMIN" → "Super Admin").
+const formatRole = (role: string): string => {
+    const cleaned = role.replace(/^ROLE_/i, '');
+    return cleaned
+        .toLowerCase()
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
 const WelcomeHeader: React.FC<Props> = ({ user }) => {
@@ -27,27 +30,25 @@ const WelcomeHeader: React.FC<Props> = ({ user }) => {
             <div className="absolute top-1/2 right-1/4 w-20 h-20 bg-white/5 rounded-full" />
 
             <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm">
                         <Sparkles className="w-5 h-5" />
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
                         Welcome, {user.username}
                     </h1>
+                    {user.roles.map((role) => (
+                        <span
+                            key={role}
+                            className="rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm bg-white/20 text-white border border-white/30"
+                        >
+                            {formatRole(role)}
+                        </span>
+                    ))}
                 </div>
                 <p className="text-blue-100 text-sm sm:text-base ml-[52px]">
                     Member since {memberSince}
                 </p>
-                <div className="flex flex-wrap gap-2 mt-4 ml-[52px]">
-                    {user.roles.map((role) => (
-                        <span
-                            key={role}
-                            className={`rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-sm ${roleColors[role] ?? 'bg-white/20 text-white border border-white/30'}`}
-                        >
-                            {role}
-                        </span>
-                    ))}
-                </div>
             </div>
         </div>
     );
