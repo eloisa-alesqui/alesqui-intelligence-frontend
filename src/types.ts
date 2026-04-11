@@ -218,3 +218,90 @@ export interface ApiConfig {
     readOnly: boolean;
     auth: AuthConfig;
 }
+
+// --- Dashboard types ---
+
+/**
+ * Summarises the most recent conversation associated with a user,
+ * providing enough context to display a "last activity" preview.
+ */
+export interface LastConversationInfo {
+    conversationId: string;
+    title: string;
+    lastUpdated: number;
+}
+
+/**
+ * Contains the identifying information for a user as returned by the
+ * dashboard summary endpoint.
+ */
+export interface DashboardUserInfo {
+    username: string;
+    roles: string[];
+    memberSince: number;
+}
+
+/**
+ * Aggregates the user's platform activity metrics shown on the dashboard,
+ * including conversation, message, and chart counts.
+ */
+export interface DashboardActivityInfo {
+    totalConversations: number;
+    totalMessages: number;
+    chartsGenerated: number;
+    lastConversation: LastConversationInfo | null;
+}
+
+/**
+ * Represents a single API available to the user, as listed in the
+ * dashboard summary response.
+ */
+export interface DashboardApiItem {
+    id: string;
+    name: string;
+    description: string;
+    active: boolean;
+}
+
+/**
+ * Describes the current state of a user's trial period, including
+ * expiry date and whether the trial has already ended.
+ */
+export interface DashboardTrialInfo {
+    daysRemaining: number;
+    trialEndDate: string;
+    expired: boolean;
+}
+
+/**
+ * Provides platform-wide statistics visible only to admin users,
+ * such as totals for users, APIs, groups, and open support tickets.
+ */
+export interface DashboardAdminInfo {
+    totalUsers: number;
+    totalApis: number;
+    totalGroups: number;
+    openTickets: number;
+}
+
+/**
+ * Contains support-related metrics available to support-role users,
+ * currently limited to the count of open tickets.
+ */
+export interface DashboardSupportInfo {
+    openTickets: number;
+}
+
+/**
+ * Root response shape returned by `/api/dashboard/summary`.
+ * Optional fields (trial, admin, support) are only present when the
+ * authenticated user has the corresponding role or deployment mode.
+ */
+export interface DashboardSummaryResponse {
+    user: DashboardUserInfo;
+    activity: DashboardActivityInfo;
+    apis: DashboardApiItem[];
+    trial?: DashboardTrialInfo;
+    admin?: DashboardAdminInfo;
+    support?: DashboardSupportInfo;
+}
