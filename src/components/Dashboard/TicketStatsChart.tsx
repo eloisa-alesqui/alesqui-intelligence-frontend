@@ -6,10 +6,31 @@ import {
     LinearScale,
     BarElement,
     Tooltip,
+    type Plugin,
 } from 'chart.js';
 import { TicketStats } from '../../types';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
+
+const valueAboveBar: Plugin<'bar'> = {
+    id: 'valueAboveBar',
+    afterDraw(chart) {
+        const { ctx, data } = chart;
+        ctx.save();
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.fillStyle = '#374151'; // gray-700
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'bottom';
+
+        chart.getDatasetMeta(0).data.forEach((bar, i) => {
+            const value = data.datasets[0].data[i] as number;
+            if (value > 0) {
+                ctx.fillText(String(value), bar.x, bar.y - 3);
+            }
+        });
+        ctx.restore();
+    },
+};
 
 interface Props {
     stats: TicketStats;
@@ -40,12 +61,15 @@ const TicketStatsChart: React.FC<Props> = ({ stats }) => {
                 ],
                 borderWidth: 1,
                 borderRadius: 6,
+                borderSkipped: false,
+                maxBarThickness: 48,
             },
         ],
     };
 
     const options = {
         maintainAspectRatio: false,
+        layout: { padding: { top: 16 } },
         plugins: {
             legend: { display: false },
             tooltip: {
@@ -60,16 +84,16 @@ const TicketStatsChart: React.FC<Props> = ({ stats }) => {
                 ticks: { font: { size: 11 } },
             },
             y: {
+                display: false,
                 beginAtZero: true,
-                grid: { color: 'rgba(0,0,0,0.05)' },
-                ticks: { precision: 0, font: { size: 11 } },
+                suggestedMax: 3,
             },
         },
     };
 
     return (
-        <div style={{ height: '200px' }}>
-            <Bar data={data} options={options} />
+        <div style={{ height: '140px' }}>
+            <Bar data={data} options={options} plugins={[valueAboveBar]} />
         </div>
     );
 };
