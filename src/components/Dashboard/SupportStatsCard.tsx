@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldAlert, ArrowRight, Flag } from 'lucide-react';
+import { ShieldAlert, Flag } from 'lucide-react';
 import { DashboardSupportInfo, TicketStats } from '../../types';
 import { useCountUp } from '../../hooks/useCountUp';
 import TicketStatsChart from './TicketStatsChart';
@@ -26,10 +26,13 @@ const SupportStatsCard: React.FC<Props> = ({ support, ticketStats }) => {
                 <h2 className="text-base font-semibold text-gray-900">Support</h2>
             </div>
 
-            <div className={showChart ? 'grid grid-cols-2 gap-4 items-center' : ''}>
+            <div className={showChart ? 'grid grid-cols-1 sm:grid-cols-2 gap-4 items-center' : ''}>
                 {/* Left: open tickets + link */}
                 <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/70">
+                    <Link
+                        to="/diagnostics"
+                        className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/70 hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
                         <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 text-amber-600">
                             <Flag className="w-4 h-4" />
                         </div>
@@ -37,13 +40,6 @@ const SupportStatsCard: React.FC<Props> = ({ support, ticketStats }) => {
                             <span className="text-xs font-medium text-gray-500">Open tickets</span>
                             <p className="text-xl font-bold text-gray-900">{openTickets}</p>
                         </div>
-                    </div>
-                    <Link
-                        to="/diagnostics"
-                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium group"
-                    >
-                        View diagnostics
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform duration-150" />
                     </Link>
                 </div>
 

@@ -420,6 +420,16 @@ class AdminService {
         );
         return data;
     }
+
+    /**
+     * Fetches audit stats for the currently authenticated user over the last N days
+     */
+    async getMyAuditStats(days: number = 30): Promise<Record<string, number>> {
+        const { data } = await apiClient.get<Record<string, number>>(
+            `${this.base}/audit-logs/my-stats`, { params: { days } }
+        );
+        return data;
+    }
 }
 
 export const adminService = new AdminService();

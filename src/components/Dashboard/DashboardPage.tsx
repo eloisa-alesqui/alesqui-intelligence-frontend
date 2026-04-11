@@ -3,6 +3,7 @@ import { Loader2, AlertCircle } from 'lucide-react';
 import { DashboardSummaryResponse, TicketStats } from '../../types';
 import { dashboardService } from '../../services/dashboardService';
 import { diagnosticsService } from '../../services/diagnosticsService';
+import { adminService } from '../../services/adminService';
 import TrialBanner from './TrialBanner';
 import WelcomeHeader from './WelcomeHeader';
 import ActivitySummaryCards from './ActivitySummaryCards';
@@ -14,6 +15,7 @@ import SupportStatsCard from './SupportStatsCard';
 const DashboardPage: React.FC = () => {
     const [data, setData] = useState<DashboardSummaryResponse | null>(null);
     const [ticketStats, setTicketStats] = useState<TicketStats | null>(null);
+    const [auditStats, setAuditStats] = useState<Record<string, number> | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,9 +23,10 @@ const DashboardPage: React.FC = () => {
         setIsLoading(true);
         setError(null);
         try {
-            const [summary, stats] = await Promise.allSettled([
+            const [summary, stats, myAuditStats] = await Promise.allSettled([
                 dashboardService.getSummary(),
                 diagnosticsService.getTicketStats(),
+                adminService.getMyAuditStats(),
             ]);
 
             if (summary.status === 'fulfilled') {
@@ -34,6 +37,10 @@ const DashboardPage: React.FC = () => {
 
             if (stats.status === 'fulfilled') {
                 setTicketStats(stats.value);
+            }
+
+            if (myAuditStats.status === 'fulfilled') {
+                setAuditStats(myAuditStats.value);
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -95,7 +102,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 {data.admin && (
                     <div className="animate-fade-in-up stagger-4">
-                        <AdminStatsCard admin={data.admin} />
+                        <AdminStatsCard admin={data.admin} auditStats={auditStats} />
                     </div>
                 )}
                 {data.support && (
