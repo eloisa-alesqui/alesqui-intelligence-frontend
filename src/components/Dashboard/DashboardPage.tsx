@@ -34,9 +34,9 @@ const DashboardPage: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col justify-center items-center h-64 gap-3">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                <span className="ml-3 text-gray-600">Loading dashboard...</span>
+                <span className="text-sm text-gray-500 font-medium">Loading dashboard...</span>
             </div>
         );
     }
@@ -44,15 +44,17 @@ const DashboardPage: React.FC = () => {
     if (error) {
         return (
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg flex items-center">
-                    <AlertCircle className="w-5 h-5 mr-3 flex-shrink-0" />
-                    <div className="flex-1">
+                <div className="bg-red-50 border border-red-200 text-red-800 p-5 rounded-2xl flex items-center">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-100 flex-shrink-0">
+                        <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 ml-4">
                         <h4 className="font-bold">Failed to load dashboard</h4>
-                        <p className="text-sm">{error}</p>
+                        <p className="text-sm mt-0.5">{error}</p>
                     </div>
                     <button
                         onClick={fetchDashboard}
-                        className="ml-4 px-3 py-1.5 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+                        className="ml-4 px-4 py-2 text-sm font-medium bg-red-100 hover:bg-red-200 text-red-800 rounded-xl transition-colors"
                     >
                         Retry
                     </button>

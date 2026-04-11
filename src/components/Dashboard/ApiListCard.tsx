@@ -6,31 +6,41 @@ interface Props {
     apis: DashboardApiItem[];
 }
 
-// Lists the APIs available to the current user.
-// Each row shows an active/inactive status dot, the API name, and a
-// single-line truncated description. Renders an empty-state message when
-// the apis array is empty.
 const ApiListCard: React.FC<Props> = ({ apis }) => {
     return (
-        <div className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex items-center gap-2 mb-4 text-gray-900">
-                <Database className="w-5 h-5" />
-                <h2 className="text-base font-semibold">Available APIs</h2>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600">
+                    <Database className="w-4 h-4" />
+                </div>
+                <h2 className="text-base font-semibold text-gray-900">Available APIs</h2>
+                {apis.length > 0 && (
+                    <span className="ml-auto text-xs font-medium text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                        {apis.length}
+                    </span>
+                )}
             </div>
             {apis.length === 0 ? (
-                // Empty state shown when the user has no APIs assigned.
-                <p className="text-sm text-gray-400">No APIs available</p>
+                <div className="text-center py-6">
+                    <Database className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400">No APIs available</p>
+                </div>
             ) : (
-                <ul className="space-y-3">
+                <ul className="space-y-1">
                     {apis.map((api) => (
-                        <li key={api.id} className="flex items-center gap-3">
-                            {/* Green dot = active, gray dot = inactive */}
+                        <li
+                            key={api.id}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors duration-150"
+                        >
                             <span
-                                className={`w-2 h-2 rounded-full flex-shrink-0 ${api.active ? 'bg-green-500' : 'bg-gray-300'}`}
+                                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ring-2 ${
+                                    api.active
+                                        ? 'bg-emerald-500 ring-emerald-100'
+                                        : 'bg-gray-300 ring-gray-100'
+                                }`}
                             />
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium text-gray-900">{api.name}</p>
-                                {/* line-clamp-1 prevents long descriptions from overflowing */}
                                 <p className="text-xs text-gray-500 line-clamp-1">{api.description}</p>
                             </div>
                         </li>
