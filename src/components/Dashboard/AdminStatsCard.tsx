@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shield, Users, Database, FolderOpen, AlertCircle } from 'lucide-react';
+import { UserCog, Users, Database, Layers, Flag } from 'lucide-react';
 import { DashboardAdminInfo } from '../../types';
 
 interface Props {
@@ -31,7 +31,7 @@ const AdminStatsCard: React.FC<Props> = ({ admin }) => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-2.5 mb-4">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-600">
-                    <Shield className="w-4 h-4" />
+                    <UserCog className="w-4 h-4" />
                 </div>
                 <h2 className="text-base font-semibold text-gray-900">Administration</h2>
             </div>
@@ -51,14 +51,14 @@ const AdminStatsCard: React.FC<Props> = ({ admin }) => {
                     iconColor="text-emerald-600"
                 />
                 <StatItem
-                    icon={<FolderOpen className="w-4 h-4" />}
+                    icon={<Layers className="w-4 h-4" />}
                     label="Groups"
                     value={admin.totalGroups}
                     iconBg="bg-violet-50"
                     iconColor="text-violet-600"
                 />
                 <StatItem
-                    icon={<AlertCircle className="w-4 h-4" />}
+                    icon={<Flag className="w-4 h-4" />}
                     label="Tickets"
                     value={admin.openTickets}
                     iconBg="bg-amber-50"

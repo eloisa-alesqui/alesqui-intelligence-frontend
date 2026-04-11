@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Headphones, ArrowRight, AlertCircle } from 'lucide-react';
+import { ShieldAlert, ArrowRight, AlertCircle } from 'lucide-react';
 import { DashboardSupportInfo } from '../../types';
 
 interface Props {
@@ -12,7 +12,7 @@ const SupportStatsCard: React.FC<Props> = ({ support }) => {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
             <div className="flex items-center gap-2.5 mb-4">
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-teal-50 text-teal-600">
-                    <Headphones className="w-4 h-4" />
+                    <ShieldAlert className="w-4 h-4" />
                 </div>
                 <h2 className="text-base font-semibold text-gray-900">Support</h2>
             </div>
