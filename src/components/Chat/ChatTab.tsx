@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { apiService } from '../../services/apiService';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
@@ -26,6 +27,7 @@ const ChatTab: React.FC = () => {
     
     const { addNotification } = useNotifications();
     const { user } = useAuth();
+    const location = useLocation();
 
     /**
      * The useChat hook provides all state and logic for managing the chat conversation,
@@ -57,6 +59,16 @@ const ChatTab: React.FC = () => {
     useEffect(() => {
         fetchHistory();
     }, [fetchHistory]);
+
+    // Auto-load conversation when navigating from Dashboard
+    useEffect(() => {
+        const conversationId = (location.state as { conversationId?: string })?.conversationId;
+        if (conversationId) {
+            loadConversation(conversationId);
+            // Clear the state so a browser refresh doesn't re-trigger the load
+            window.history.replaceState({}, '');
+        }
+    }, [location.state, loadConversation]);
 
     /**
      * An effect that runs once on component mount to load the list of

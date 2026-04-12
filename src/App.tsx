@@ -13,6 +13,7 @@ import SetupTab from './components/Setup/SetupTab';
 import ApiList from './components/ApiDetails/ApiList';
 import ManageApiPage from './components/ApiDetails/ManageApiPage';
 import ChatTab from './components/Chat/ChatTab';
+import DashboardPage from './components/Dashboard/DashboardPage';
 import DiagnosticsTab from './components/Diagnostics/DiagnosticsTab';
 import AdminLayout from './components/Admin/AdminLayout';
 import GroupList from './components/Admin/Groups/GroupList';
@@ -45,7 +46,8 @@ const AlesquiIntelligenceApp: React.FC = () => {
                     {/* This ProtectedRoute has no 'roles' prop, so it only checks if the user is logged in. */}
                     <Route element={<ProtectedRoute />}>
                         {/* Default redirect for logged-in users */}
-                        <Route path="/" element={<Navigate to="/chat" replace />} />
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={<DashboardPage />} />
                         <Route path="/chat" element={<ChatTab />} />
                     </Route>
 

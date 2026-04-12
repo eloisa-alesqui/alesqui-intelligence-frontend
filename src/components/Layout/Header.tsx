@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Bot, FileText, Database, MessageCircle, User, LogOut, ShieldAlert, UserCog, Menu, X } from 'lucide-react';
+import { Bot, FileText, Database, MessageCircle, User, LogOut, ShieldAlert, UserCog, Menu, X, LayoutDashboard } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 // TypeScript types for the component's props.
@@ -48,6 +48,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
     // Navigation items with their required roles.
     // If an item has no 'roles' property, it's visible to all authenticated users.
     const navItems = [
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/dashboard' },
         { id: 'setup', label: 'API Configuration', icon: FileText, to: '/setup', roles: ['ROLE_IT', 'ROLE_SUPERADMIN', 'ROLE_TRIAL'] },
         { id: 'apis', label: 'Configured APIs', icon: Database, to: '/apis', roles: ['ROLE_IT', 'ROLE_SUPERADMIN', 'ROLE_TRIAL'] },
         { id: 'diagnostics', label: 'Diagnostics', icon: ShieldAlert, to: '/diagnostics', roles: ['ROLE_IT', 'ROLE_SUPERADMIN', 'ROLE_TRIAL'] },
