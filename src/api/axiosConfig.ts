@@ -133,8 +133,8 @@ apiClient.interceptors.response.use(
 
         // Check if this is a 401 error and we haven't already retried
         if (error.response?.status === 401 && !originalRequest._retry) {
-            // Prevent infinite loops on the refresh endpoint itself
-            if (originalRequest.url?.includes('/api/auth/refresh')) {
+            // Skip token refresh for auth endpoints (login, refresh, OAuth)
+            if (originalRequest.url?.includes('/api/auth/')) {
                 return Promise.reject(error);
             }
 

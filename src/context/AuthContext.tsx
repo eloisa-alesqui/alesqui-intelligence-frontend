@@ -16,6 +16,7 @@ interface AuthContextType {
     user: UserPayload | null;
     isAuthenticated: boolean;
     login: (username: string, password: string) => Promise<boolean>;
+    loginWithToken: (accessToken: string, refreshToken: string) => void;
     logout: () => Promise<void>;
 }
 
@@ -59,6 +60,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    const loginWithToken = (accessToken: string, refreshToken: string): void => {
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        setToken(accessToken);
+        setUser(jwtDecode<UserPayload>(accessToken));
+    };
+
     const logout = async (): Promise<void> => {
         try {
             // Call backend logout endpoint for audit logging
@@ -80,6 +88,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         user,
         isAuthenticated: !!token,
         login,
+        loginWithToken,
         logout,
     }), [token, user]);
 
