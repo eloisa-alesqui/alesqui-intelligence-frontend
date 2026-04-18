@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { LogIn, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import GoogleSignInButton from '../components/Auth/GoogleSignInButton';
+import LinkAccountModal from '../components/Auth/LinkAccountModal';
+import { googleAuthService } from '../services/googleAuthService';
 
 // Import your logo image. Adjust the path if necessary.
 import logo from '../assets/logo.png'; // Make sure this path is correct
@@ -18,8 +22,13 @@ const LoginPage: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    
-    const { login } = useAuth();
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkChallenge, setLinkChallenge] = useState<string | null>(null);
+    const [pendingIdToken, setPendingIdToken] = useState<string | null>(null);
+    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+    const { login, loginWithToken } = useAuth();
+    const { addNotification } = useNotifications();
     const navigate = useNavigate();
 
     // Check for password reset success message
@@ -63,6 +72,48 @@ const LoginPage: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleGoogleSuccess = async (credential: string) => {
+        setIsGoogleLoading(true);
+        try {
+            const result = await googleAuthService.loginWithGoogle(credential);
+            if (result.linkRequired) {
+                setPendingIdToken(credential);
+                setLinkChallenge(result.linkChallenge || null);
+                setShowLinkModal(true);
+            } else {
+                loginWithToken(result.accessToken!, result.refreshToken!);
+                navigate('/dashboard');
+            }
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    };
+
+    const handleLinkConfirm = async () => {
+        setIsGoogleLoading(true);
+        try {
+            const result = await googleAuthService.confirmGoogleLink(pendingIdToken!, linkChallenge!);
+            loginWithToken(result.accessToken!, result.refreshToken!);
+            setShowLinkModal(false);
+            setPendingIdToken(null);
+            setLinkChallenge(null);
+            addNotification('Account linked successfully', 'success');
+            navigate('/dashboard');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setIsGoogleLoading(false);
+        }
+    };
+
+    const handleLinkCancel = () => {
+        setShowLinkModal(false);
+        setPendingIdToken(null);
+        setLinkChallenge(null);
     };
 
     return (
@@ -201,7 +252,26 @@ const LoginPage: React.FC = () => {
                             Forgot your password?
                         </button>
                     </div>
+
+                    {/* Divider */}
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-gray-300" />
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                            <span className="px-2 bg-white text-gray-500">or</span>
+                        </div>
+                    </div>
+
+                    {/* Google Sign In */}
+                    <div className="flex justify-center">
+                        <GoogleSignInButton onSuccess={handleGoogleSuccess} disabled={isLoading || isGoogleLoading} />
+                    </div>
                 </form>
+
+                {showLinkModal && (
+                    <LinkAccountModal onConfirm={handleLinkConfirm} onCancel={handleLinkCancel} isLoading={isGoogleLoading} />
+                )}
             </div>
         </div>
     );

@@ -5,13 +5,16 @@ import AlesquiIntelligenceApp from './App.tsx'
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { DeploymentProvider } from './context/DeploymentContext';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 createRoot(document.getElementById('root')).render(
     <DeploymentProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <AlesquiIntelligenceApp />
-        </NotificationProvider>
-      </AuthProvider>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || ''}>
+        <AuthProvider>
+          <NotificationProvider>
+            <AlesquiIntelligenceApp />
+          </NotificationProvider>
+        </AuthProvider>
+      </GoogleOAuthProvider>
     </DeploymentProvider>
 )
